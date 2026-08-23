@@ -2,6 +2,7 @@ package server
 
 import (
 	"le-grimoire/internal/core"
+	"le-grimoire/internal/handlers"
 )
 
 func StartServer() {
@@ -14,13 +15,13 @@ func startApp() {
 	app.InitLogging()
 
 	// Initialize the HTTP server
-	svr := core.NewHTTPServer(app)
+	router := core.NewHTTPServer()
 
 	// Initialize the routes
-	// TODO: Implement route initialization logic here
+	handlers.InitRoutes(app, router)
 
 	// Run the server
-	core.RunHTTPServer(app, svr)
+	core.RunHTTPServer(app, router)
 
 	// TODO: Implement graceful shutdown logic here
 }

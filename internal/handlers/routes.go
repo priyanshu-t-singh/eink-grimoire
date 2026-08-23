@@ -1,0 +1,66 @@
+package handlers
+
+import (
+	"encoding/json"
+	"errors"
+	"le-grimoire/internal/core"
+	"le-grimoire/internal/models"
+	"net/http"
+	"strings"
+)
+
+type Handler struct {
+	App *core.App
+}
+
+func InitRoutes(app *core.App, router *http.ServeMux) {
+	h := &Handler{App: app}
+
+	v1 := http.NewServeMux()
+	v1.HandleFunc("GET /health", h.HealthCheckHandler)
+	v1.HandleFunc("GET /current_page", h.CurrentPageHandler)
+	v1.HandleFunc("POST /push_button", h.PushButtonHandler)
+
+	router.Handle("/api/v1/", http.StripPrefix("/api/v1", v1))
+}
+
+func (h *Handler) JSON(w http.ResponseWriter, status int, data any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if data != nil {
+		jsonData, err := json.Marshal(data)
+		if err != nil {
+			http.Error(w, "Failed to marshal JSON", http.StatusInternalServerError)
+			return
+		}
+		w.Write(jsonData)
+	}
+}
+
+func (h *Handler) RespondWithData(w http.ResponseWriter, data any) {
+	h.JSON(w, http.StatusOK, models.NewDataResponse(data))
+}
+
+func (h *Handler) RespondWithError(w http.ResponseWriter, err error) {
+	h.JSON(w, statusCodeForError(err), models.NewErrorResponse(err))
+}
+
+func (h *Handler) RespondWithStatusError(w http.ResponseWriter, code int, err error) {
+	h.JSON(w, code, models.NewErrorResponse(err))
+}
+
+func statusCodeForError(err error) int {
+	if err == nil {
+		return http.StatusInternalServerError
+	}
+
+	if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
+		return http.StatusRequestEntityTooLarge
+	}
+
+	if strings.EqualFold(strings.TrimSpace(err.Error()), "UNAUTHENTICATED") {
+		return http.StatusUnauthorized
+	}
+
+	return http.StatusInternalServerError
+}
