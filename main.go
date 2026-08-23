@@ -1,7 +1,7 @@
 package main
 
-import "fmt"
+import "le-grimoire/internal/server"
 
 func main() {
-	fmt.Println("Hello World!")
+	server.StartServer()
 }
