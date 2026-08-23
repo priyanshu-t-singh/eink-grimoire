@@ -1,0 +1,3 @@
+[submodule "client"]
+	path = client
+	url = https://github.com/priyanshu-t-singh/eink-grimoire-thin-client
