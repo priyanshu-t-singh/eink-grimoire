@@ -14,6 +14,7 @@ func RunHTTPServer(app *App, router *http.ServeMux) {
 		Addr: app.Config.GetServerAddr(),
 		Handler: middleware.CreateStack(
 			middleware.Logging,
+			middleware.AllowCors,
 		)(router),
 	}
 
