@@ -16,14 +16,30 @@ type Config struct {
 		Dir string
 	}
 	KavitaAPI struct {
-		Host string
-		Port int
+		Host       string
+		Port       int
+		PluginName string
+	}
+	Display struct {
+		Height int
+		Width  int
 	}
 }
 
 type serverConfig struct {
 	Host string
 	Port int
+}
+
+type displayConfig struct {
+	Height int
+	Width  int
+}
+
+type kavitaAPIConfig struct {
+	Host       string
+	Port       int
+	PluginName string
 }
 
 type logsConfig struct {
@@ -46,9 +62,18 @@ func NewConfig(logger *slog.Logger) *Config {
 		Logs: logsConfig{
 			Dir: "./.logs",
 		},
-		KavitaAPI: serverConfig{
-			Host: defaultHost,
-			Port: 5000,
+
+		// Kavita Configuration
+		KavitaAPI: kavitaAPIConfig{
+			Host:       defaultHost,
+			Port:       5000,
+			PluginName: "le-grimoire",
+		},
+
+		// Display Configuration (4.2" e-paper = 400x300)
+		Display: displayConfig{
+			Width:  400,
+			Height: 300,
 		},
 	}
 }
@@ -59,4 +84,12 @@ func (cfg *Config) GetServerAddr() string {
 
 func (cfg *Config) GetServerURI() string {
 	return fmt.Sprintf("http://%s", cfg.GetServerAddr())
+}
+
+func (cfg *Config) GetKavitaAPIURI() string {
+	return fmt.Sprintf("http://%s:%d", cfg.KavitaAPI.Host, cfg.KavitaAPI.Port)
+}
+
+func (cfg *Config) GetDisplayResolution() string {
+	return fmt.Sprintf("%dx%d", cfg.Display.Width, cfg.Display.Height)
 }

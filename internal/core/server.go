@@ -5,9 +5,11 @@ import (
 	"net/http"
 )
 
-func NewHTTPServer(app *App) *http.Server {
-	router := http.NewServeMux()
+func NewHTTPServer() *http.ServeMux {
+	return http.NewServeMux()
+}
 
+func RunHTTPServer(app *App, router *http.ServeMux) {
 	server := &http.Server{
 		Addr: app.Config.GetServerAddr(),
 		Handler: middleware.CreateStack(
@@ -15,13 +17,10 @@ func NewHTTPServer(app *App) *http.Server {
 		)(router),
 	}
 
-	return server
-}
-
-func RunHTTPServer(app *App, server *http.Server) {
 	serverAddr := app.Config.GetServerAddr()
 	app.Logger.Info("Starting HTTP server", "address", serverAddr)
 	app.Logger.Info("Server is running at " + app.Config.GetServerURI())
+	app.Logger.Info("Display resolution: " + app.Config.GetDisplayResolution())
 
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		app.Logger.Error("HTTP server error", "error", err)
