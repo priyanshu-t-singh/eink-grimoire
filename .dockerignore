@@ -1,0 +1,31 @@
+
+# Git
+.git
+.gitignore
+
+# Go build artifacts and dependencies
+bin/
+*.exe
+*.test
+*.out
+vendor/
+
+# Environment variables
+.env
+.env.*
+
+# Docker and IDE files
+Dockerfile
+.dockerignore
+docker-compose.yml
+.idea/
+.vscode/
+
+# Docs and scripts
+README.md
+docs/
+scripts/
+.github/
+
+# Submodule
+client/
