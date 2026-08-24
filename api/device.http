@@ -1,0 +1,13 @@
+@baseUrl = http://localhost:8080/api/v1
+@deviceId = esp32-test-device-01
+@apiKey = test-key
+
+
+### Health Check 
+GET {{baseUrl}}/health
+
+
+### Get Current Page
+GET {{baseUrl}}/current_page
+X-Device-Id: {{deviceId}}
+Authorization: Bearer {{apiKey}}

@@ -22,6 +22,12 @@ func DeviceAuth(repo *device.Repository) func(http.Handler) http.Handler {
 			deviceID := r.Header.Get("X-Device-Id")
 			authHeader := r.Header.Get("Authorization")
 
+			// Ignore /health endpoint for authentication
+			if r.URL.Path == "/api/v1/health" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			if deviceID == "" || authHeader == "" {
 				http.Error(w, "Missing authentication headers", http.StatusUnauthorized)
 				return
