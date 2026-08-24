@@ -48,7 +48,7 @@ type logsConfig struct {
 
 // TODO: Implement a proper configuration loading mechanism (e.g., from a file or environment variables)
 func NewConfig(logger *slog.Logger) *Config {
-	logger.Debug("Loading configuration...")
+	logger.Info("Loading configuration...")
 
 	defaultHost := constants.Host
 	defaultPort := constants.Port

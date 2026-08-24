@@ -24,6 +24,7 @@ type App struct {
 
 func NewApp() *App {
 	logger := util.NewLogger()
+	logger.Info("Initializing application...")
 
 	return &App{
 		Config:           NewConfig(logger),

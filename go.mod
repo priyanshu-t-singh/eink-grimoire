@@ -7,6 +7,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.50
 	github.com/pressly/goose/v3 v3.27.3
 	github.com/rs/cors v1.11.1
+	golang.org/x/time v0.15.0
 )
 
 require (
