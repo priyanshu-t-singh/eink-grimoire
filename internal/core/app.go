@@ -3,6 +3,7 @@ package core
 import (
 	"database/sql"
 	"le-grimoire/internal/constants"
+	"le-grimoire/internal/device"
 	"le-grimoire/internal/kavita"
 	"le-grimoire/internal/util"
 	"log/slog"
@@ -15,8 +16,9 @@ type App struct {
 	Database *sql.DB
 	Version  string
 
-	// Kavita Repository
+	// Repository
 	KavitaRepository *kavita.Repository
+	DeviceRepository *device.Repository
 
 	// Shutdown
 	ShutdownLogger func()
@@ -27,9 +29,9 @@ func NewApp() *App {
 	logger.Info("Initializing application...")
 
 	return &App{
-		Config:           NewConfig(logger),
-		Logger:           logger,
-		Version:          constants.Version,
-		KavitaRepository: &kavita.Repository{},
+		Config:   NewConfig(logger),
+		Logger:   logger,
+		Database: nil,
+		Version:  constants.Version,
 	}
 }

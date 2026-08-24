@@ -14,6 +14,7 @@ func startApp() {
 	app := core.NewApp()
 	app.InitLogging()
 	app.InitDatabase()
+	app.InitRepositories()
 
 	// Initialize the HTTP server
 	router := core.NewHTTPServer()
