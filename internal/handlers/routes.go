@@ -3,10 +3,11 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"le-grimoire/internal/core"
-	"le-grimoire/internal/models"
 	"net/http"
 	"strings"
+
+	"le-grimoire/internal/core"
+	"le-grimoire/internal/models"
 )
 
 type Handler struct {

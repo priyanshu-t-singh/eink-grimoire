@@ -2,13 +2,14 @@ package core
 
 import (
 	"context"
-	"le-grimoire/internal/middleware"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"le-grimoire/internal/middleware"
 )
 
 func NewHTTPServer() *http.ServeMux {
@@ -22,6 +23,7 @@ func RunHTTPServer(app *App, router *http.ServeMux) {
 			middleware.Logging,
 			middleware.AllowCors,
 			middleware.RateLimiter,
+			middleware.DeviceAuth(app.DeviceRepository),
 		)(router),
 	}
 
