@@ -43,4 +43,12 @@ func (a *App) InitLogging() {
 	// Bind to App & Global Default
 	a.Logger = logger
 	slog.SetDefault(logger)
+
+	// Set up shutdown function for logger
+	a.ShutdownLogger = func() {
+		slog.Info("Shutting down logger...")
+		if err := logFile.Close(); err != nil {
+			slog.Error("failed to close log file", "error", err)
+		}
+	}
 }

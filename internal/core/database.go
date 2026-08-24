@@ -1,0 +1,25 @@
+package core
+
+import "le-grimoire/internal/database"
+
+func (a *App) InitDatabase() {
+	db, err := database.SetupDatabase()
+	if err != nil {
+		a.Logger.Error("failed to setup database", "err", err)
+		panic(err)
+	}
+	a.Database = db
+}
+
+func (a *App) ShutdownDatabase() {
+	if a.Database != nil {
+		return
+	}
+
+	a.Logger.Info("Closing database connection...")
+	if err := a.Database.Close(); err != nil {
+		a.Logger.Error("error closing database", "error", err)
+	}
+
+	a.Logger.Info("Database connection closed")
+}

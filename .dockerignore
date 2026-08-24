@@ -29,5 +29,6 @@ scripts/
 # Submodule
 client/
 
-# Logs
+# Others
 .logs/
+.db/

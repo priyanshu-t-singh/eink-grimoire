@@ -13,6 +13,7 @@ func startApp() {
 	// Create the app instance
 	app := core.NewApp()
 	app.InitLogging()
+	app.InitDatabase()
 
 	// Initialize the HTTP server
 	router := core.NewHTTPServer()
@@ -20,8 +21,6 @@ func startApp() {
 	// Initialize the routes
 	handlers.InitRoutes(app, router)
 
-	// Run the server
+	// Run the server with graceful shutdown
 	core.RunHTTPServer(app, router)
-
-	// TODO: Implement graceful shutdown logic here
 }

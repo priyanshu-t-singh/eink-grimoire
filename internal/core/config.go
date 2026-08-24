@@ -50,8 +50,8 @@ type logsConfig struct {
 func NewConfig(logger *slog.Logger) *Config {
 	logger.Debug("Loading configuration...")
 
-	defaultHost := "127.0.0.1"
-	defaultPort := 8080
+	defaultHost := constants.Host
+	defaultPort := constants.Port
 
 	return &Config{
 		Version: constants.Version,
@@ -60,20 +60,20 @@ func NewConfig(logger *slog.Logger) *Config {
 			Port: defaultPort,
 		},
 		Logs: logsConfig{
-			Dir: "./.logs",
+			Dir: constants.LogFileDirectory,
 		},
 
 		// Kavita Configuration
 		KavitaAPI: kavitaAPIConfig{
-			Host:       defaultHost,
-			Port:       5000,
-			PluginName: "le-grimoire",
+			Host:       constants.KavitaAPIHost,
+			Port:       constants.KavitaAPIPort,
+			PluginName: constants.KavitaAPIPluginName,
 		},
 
 		// Display Configuration (4.2" e-paper = 400x300)
 		Display: displayConfig{
-			Width:  400,
-			Height: 300,
+			Width:  constants.DisplayWidth,
+			Height: constants.DisplayHeight,
 		},
 	}
 }
