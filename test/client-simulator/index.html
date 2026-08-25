@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E-Ink Device Simulator (400x300)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Subtle pixelated look for e-ink authenticity */
+    canvas {
+      image-rendering: pixelated;
+    }
+    @keyframes eink-flash {
+      0% { filter: invert(0.9); }
+      50% { filter: brightness(1.2); }
+      100% { filter: invert(0); }
+    }
+    .refresh-flash {
+      animation: eink-flash 0.35s ease-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center py-8 px-4 font-sans selection:bg-amber-500 selection:text-black">
+
+  <header class="text-center mb-6">
+    <h1 class="text-2xl font-bold tracking-wider text-slate-100 uppercase">E-Ink Device Mock UI</h1>
+    <p class="text-xs text-slate-400 mt-1">400×300 (4-Gray) Simulator • Interactive Push Buttons</p>
+  </header>
+
+  <!-- Configuration Bar -->
+  <section class="w-full max-w-5xl bg-slate-800/80 backdrop-blur border border-slate-700 rounded-xl p-4 mb-6 shadow-lg">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+      <div>
+        <label class="block text-slate-400 mb-1 font-semibold">Base URL</label>
+        <input id="baseUrl" type="text" value="http://localhost:8080/api/v1" class="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 focus:border-amber-500 outline-none font-mono" />
+      </div>
+      <div>
+        <label class="block text-slate-400 mb-1 font-semibold">Device ID (X-Device-Id)</label>
+        <input id="deviceId" type="text" value="esp32-test-device-01" class="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 focus:border-amber-500 outline-none font-mono" />
+      </div>
+      <div>
+        <label class="block text-slate-400 mb-1 font-semibold">API Key (Bearer)</label>
+        <input id="apiKey" type="text" value="test-key" class="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 focus:border-amber-500 outline-none font-mono" />
+      </div>
+      <div class="flex items-end gap-2">
+        <button id="btnHealth" class="flex-1 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 py-1.5 rounded font-medium text-slate-200 transition">Check Health</button>
+        <button id="btnRefresh" class="flex-1 bg-amber-600 hover:bg-amber-500 active:bg-amber-400 py-1.5 rounded font-medium text-white transition">Fetch Screen</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Hardware Mock Container -->
+  <main class="w-full max-w-5xl flex flex-col lg:flex-row gap-6 items-start">
+    
+    <!-- Physical Device Mockup -->
+    <div class="bg-neutral-800 border-4 border-neutral-700 rounded-3xl p-6 shadow-2xl flex flex-col items-center select-none mx-auto">
+      
+      <!-- Top Bezel Info -->
+      <div class="w-full flex justify-between items-center text-[10px] text-neutral-400 uppercase tracking-widest px-2 mb-3">
+        <span>Model: ESP32-EINK-400300</span>
+        <span id="statusIndicator" class="flex items-center gap-1.5 font-bold text-emerald-400">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> READY
+        </span>
+      </div>
+
+      <!-- Button/Screen Sandwich -->
+      <div class="flex items-center gap-4">
+        
+        <!-- Left Buttons: A, B, C -->
+        <div class="flex flex-col gap-6">
+          <button class="hw-btn group relative flex flex-col items-center justify-center w-14 h-20 bg-neutral-900 border-2 border-neutral-600 rounded-lg active:scale-95 transition-all shadow-md overflow-hidden" data-btn="A">
+            <span class="font-mono text-lg font-bold text-neutral-300">A</span>
+            <span class="text-[9px] text-neutral-500 mt-1">HOLD: L</span>
+            <div class="progress-bar absolute bottom-0 left-0 h-1 bg-amber-500 w-0"></div>
+          </button>
+          <button class="hw-btn group relative flex flex-col items-center justify-center w-14 h-20 bg-neutral-900 border-2 border-neutral-600 rounded-lg active:scale-95 transition-all shadow-md overflow-hidden" data-btn="B">
+            <span class="font-mono text-lg font-bold text-neutral-300">B</span>
+            <span class="text-[9px] text-neutral-500 mt-1">HOLD: L</span>
+            <div class="progress-bar absolute bottom-0 left-0 h-1 bg-amber-500 w-0"></div>
+          </button>
+          <button class="hw-btn group relative flex flex-col items-center justify-center w-14 h-20 bg-neutral-900 border-2 border-neutral-600 rounded-lg active:scale-95 transition-all shadow-md overflow-hidden" data-btn="C">
+            <span class="font-mono text-lg font-bold text-neutral-300">C</span>
+            <span class="text-[9px] text-neutral-500 mt-1">HOLD: L</span>
+            <div class="progress-bar absolute bottom-0 left-0 h-1 bg-amber-500 w-0"></div>
+          </button>
+        </div>
+
+        <!-- E-Ink Display Bezel -->
+        <div class="bg-[#d2d6d9] p-4 rounded-xl border-4 border-neutral-900 shadow-inner flex flex-col items-center">
+          <canvas id="einkCanvas" width="400" height="300" class="border border-neutral-400 bg-[#e8ecef] shadow-sm"></canvas>
+          <div class="w-full flex justify-between items-center text-[10px] text-neutral-600 font-mono mt-2">
+            <span>400 × 300 px</span>
+            <span>4-GRAYSCALE (2-BIT)</span>
+          </div>
+        </div>
+
+        <!-- Right Buttons: D, E, F -->
+        <div class="flex flex-col gap-6">
+          <button class="hw-btn group relative flex flex-col items-center justify-center w-14 h-20 bg-neutral-900 border-2 border-neutral-600 rounded-lg active:scale-95 transition-all shadow-md overflow-hidden" data-btn="D">
+            <span class="font-mono text-lg font-bold text-neutral-300">D</span>
+            <span class="text-[9px] text-neutral-500 mt-1">HOLD: L</span>
+            <div class="progress-bar absolute bottom-0 left-0 h-1 bg-amber-500 w-0"></div>
+          </button>
+          <button class="hw-btn group relative flex flex-col items-center justify-center w-14 h-20 bg-neutral-900 border-2 border-neutral-600 rounded-lg active:scale-95 transition-all shadow-md overflow-hidden" data-btn="E">
+            <span class="font-mono text-lg font-bold text-neutral-300">E</span>
+            <span class="text-[9px] text-neutral-500 mt-1">HOLD: L</span>
+            <div class="progress-bar absolute bottom-0 left-0 h-1 bg-amber-500 w-0"></div>
+          </button>
+          <button class="hw-btn group relative flex flex-col items-center justify-center w-14 h-20 bg-neutral-900 border-2 border-neutral-600 rounded-lg active:scale-95 transition-all shadow-md overflow-hidden" data-btn="F">
+            <span class="font-mono text-lg font-bold text-neutral-300">F</span>
+            <span class="text-[9px] text-neutral-500 mt-1">HOLD: L</span>
+            <div class="progress-bar absolute bottom-0 left-0 h-1 bg-amber-500 w-0"></div>
+          </button>
+        </div>
+
+      </div>
+
+      <div class="text-[11px] text-neutral-500 mt-4">
+        Hold any button &gt; 500ms for <code class="text-amber-400">long_press</code>, click quickly for <code class="text-amber-400">short_press</code>.
+      </div>
+    </div>
+
+    <!-- Live Telemetry & Event Log -->
+    <div class="flex-1 w-full flex flex-col h-[460px] bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
+      <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex justify-between items-center text-xs font-semibold">
+        <span class="text-slate-300">Activity &amp; API Log</span>
+        <button id="btnClearLog" class="text-slate-400 hover:text-white text-[11px]">Clear</button>
+      </div>
+      <div id="logConsole" class="flex-1 p-3 font-mono text-[11px] overflow-y-auto space-y-1.5 text-slate-300"></div>
+    </div>
+
+  </main>
+
+  <script>
+    const WIDTH = 400;
+    const HEIGHT = 300;
+    const TOTAL_PIXELS = WIDTH * HEIGHT; // 120,000
+    const EXPECTED_2BIT_BYTES = TOTAL_PIXELS / 4; // 30,000 bytes
+
+    const canvas = document.getElementById('einkCanvas');
+    const ctx = canvas.getContext('2d');
+    const logConsole = document.getElementById('logConsole');
+    const statusIndicator = document.getElementById('statusIndicator');
+
+    // 4-gray lookup shades (White -> Light Gray -> Dark Gray -> Black)
+    const GRAY_LEVELS = [255, 170, 85, 0];
+
+    function getHeaders() {
+      return {
+        'Content-Type': 'application/json',
+        'X-Device-Id': document.getElementById('deviceId').value.trim(),
+        'Authorization': `Bearer ${document.getElementById('apiKey').value.trim()}`
+      };
+    }
+
+    function log(message, type = 'info') {
+      const el = document.createElement('div');
+      const time = new Date().toLocaleTimeString();
+      let color = 'text-slate-300';
+      if (type === 'success') color = 'text-emerald-400';
+      if (type === 'warn') color = 'text-amber-400';
+      if (type === 'error') color = 'text-rose-400';
+
+      el.className = `${color} leading-relaxed break-all`;
+      el.innerHTML = `<span class="text-slate-600">[${time}]</span> ${message}`;
+      logConsole.appendChild(el);
+      logConsole.scrollTop = logConsole.scrollHeight;
+    }
+
+    function drawTestPattern() {
+      ctx.fillStyle = '#e8ecef';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = '#000000';
+      ctx.font = '16px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('NO SCREEN BUFFER LOADED', WIDTH / 2, HEIGHT / 2 - 10);
+      ctx.font = '12px monospace';
+      ctx.fillStyle = '#555555';
+      ctx.fillText('Click "Fetch Screen" to load current_page', WIDTH / 2, HEIGHT / 2 + 15);
+    }
+
+    // Decode 4-gray (2 bits per pixel, packed MSB first)
+    function render2BitBuffer(buffer) {
+      const bytes = new Uint8Array(buffer);
+      const imgData = ctx.createImageData(WIDTH, HEIGHT);
+      const data = imgData.data;
+
+      let pixelIdx = 0;
+      for (let i = 0; i < bytes.length && pixelIdx < TOTAL_PIXELS; i++) {
+        const byte = bytes[i];
+        for (let bitShift = 6; bitShift >= 0; bitShift -= 2) {
+          if (pixelIdx >= TOTAL_PIXELS) break;
+          const val = (byte >> bitShift) & 0x03;
+          const gray = GRAY_LEVELS[val];
+          const outOffset = pixelIdx * 4;
+          
+          data[outOffset] = gray;     // R
+          data[outOffset + 1] = gray; // G
+          data[outOffset + 2] = gray; // B
+          data[outOffset + 3] = 255;  // Alpha
+          pixelIdx++;
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+
+      // Trigger visual e-ink refresh flash
+      canvas.classList.remove('refresh-flash');
+      void canvas.offsetWidth; // trigger reflow
+      canvas.classList.add('refresh-flash');
+    }
+
+    // Fetch /health
+    async function checkHealth() {
+      const baseUrl = document.getElementById('baseUrl').value.trim();
+      log(`GET ${baseUrl}/health ...`);
+      try {
+        const res = await fetch(`${baseUrl}/health`);
+        const body = await res.text();
+        if (res.ok) {
+          log(`Health OK: ${body}`, 'success');
+        } else {
+          log(`Health check failed: HTTP ${res.status}`, 'error');
+        }
+      } catch (err) {
+        log(`Health check request error: ${err.message}`, 'error');
+      }
+    }
+
+    // Fetch /current_page
+    async function fetchCurrentPage() {
+      const baseUrl = document.getElementById('baseUrl').value.trim();
+      log(`GET ${baseUrl}/current_page ...`);
+      try {
+        const res = await fetch(`${baseUrl}/current_page`, {
+          method: 'GET',
+          headers: getHeaders()
+        });
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status} - ${res.statusText}`);
+        }
+
+        const buffer = await res.arrayBuffer();
+        log(`Received ${buffer.byteLength} bytes for 4-gray frame.`, 'success');
+        render2BitBuffer(buffer);
+      } catch (err) {
+        log(`Failed to fetch current page: ${err.message}`, 'error');
+      }
+    }
+
+    // POST /push_button
+    async function sendButtonPress(buttonId, pressType) {
+      const baseUrl = document.getElementById('baseUrl').value.trim();
+      const payload = { button_id: buttonId, type: pressType };
+
+      log(`POST ${baseUrl}/push_button [${buttonId} - ${pressType}]`);
+
+      try {
+        const res = await fetch(`${baseUrl}/push_button`, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(`HTTP ${res.status}: ${errText}`);
+        }
+
+        const resData = await res.json().catch(() => ({}));
+        log(`Button ${buttonId} (${pressType}) acknowledged. Refreshing display...`, 'success');
+        
+        // Auto-refresh upon successful button push
+        await fetchCurrentPage();
+      } catch (err) {
+        log(`Button push failed: ${err.message}`, 'error');
+      }
+    }
+
+    // Wire up hardware button hold gestures (>500ms)
+    document.querySelectorAll('.hw-btn').forEach(btn => {
+      let timer = null;
+      let isLongPress = false;
+      const buttonId = btn.getAttribute('data-btn');
+      const progressBar = btn.querySelector('.progress-bar');
+
+      const startPress = (e) => {
+        e.preventDefault();
+        isLongPress = false;
+        progressBar.style.transition = 'width 500ms linear';
+        progressBar.style.width = '100%';
+
+        timer = setTimeout(() => {
+          isLongPress = true;
+          sendButtonPress(buttonId, 'long_press');
+        }, 500);
+      };
+
+      const endPress = (e) => {
+        e.preventDefault();
+        progressBar.style.transition = 'none';
+        progressBar.style.width = '0%';
+
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+          if (!isLongPress) {
+            sendButtonPress(buttonId, 'short_press');
+          }
+        }
+      };
+
+      btn.addEventListener('mousedown', startPress);
+      btn.addEventListener('mouseup', endPress);
+      btn.addEventListener('mouseleave', endPress);
+
+      btn.addEventListener('touchstart', startPress, { passive: false });
+      btn.addEventListener('touchend', endPress);
+      btn.addEventListener('touchcancel', endPress);
+    });
+
+    document.getElementById('btnHealth').addEventListener('click', checkHealth);
+    document.getElementById('btnRefresh').addEventListener('click', fetchCurrentPage);
+    document.getElementById('btnClearLog').addEventListener('click', () => { logConsole.innerHTML = ''; });
+
+    // Initial canvas setup
+    drawTestPattern();
+  </script>
+</body>
+</html>
