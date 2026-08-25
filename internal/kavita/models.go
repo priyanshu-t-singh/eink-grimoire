@@ -59,7 +59,7 @@ type Volume struct {
 type Chapter struct {
 	ID          int    `json:"id"`
 	VolumeID    int    `json:"volumeId"`
-	Title       string `json:"title"`
+	Title       string `json:"titleName"`
 	Number      string `json:"number"`
 	Pages       int    `json:"pages"`
 	IsSpecial   bool   `json:"isSpecial"`
