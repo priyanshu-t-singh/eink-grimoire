@@ -1,5 +1,7 @@
 package constants
 
+import "time"
+
 const (
 	Version = "0.1.0"
 	Host    = "127.0.0.1"
@@ -7,9 +9,12 @@ const (
 )
 
 const (
-	KavitaAPIHost       = "127.0.0.1"
-	KavitaAPIPort       = 5000
 	KavitaAPIPluginName = "le-grimoire"
+	KavitaScheme        = "http"
+	KavitaAPIHost       = "127.0.0.1"
+	KavitaAPIKey        = "your_kavita_api_key_here" // Replace with your actual Kavita API key
+	KavitaAPIPort       = 5000
+	KavitaAPITimeout    = 10 * time.Second
 )
 
 // Display Configuration (4.2" e-paper = 400x300)

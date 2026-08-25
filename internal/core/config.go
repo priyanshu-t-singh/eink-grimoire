@@ -4,26 +4,15 @@ import (
 	"fmt"
 	"le-grimoire/internal/constants"
 	"log/slog"
+	"time"
 )
 
 type Config struct {
-	Version string
-	Server  struct {
-		Host string
-		Port int
-	}
-	Logs struct {
-		Dir string
-	}
-	KavitaAPI struct {
-		Host       string
-		Port       int
-		PluginName string
-	}
-	Display struct {
-		Height int
-		Width  int
-	}
+	Version   string
+	Server    serverConfig
+	Logs      logsConfig
+	KavitaAPI kavitaAPIConfig
+	Display   displayConfig
 }
 
 type serverConfig struct {
@@ -39,7 +28,10 @@ type displayConfig struct {
 type kavitaAPIConfig struct {
 	Host       string
 	Port       int
+	Scheme     string
+	APIKey     string
 	PluginName string
+	Timeout    time.Duration
 }
 
 type logsConfig struct {
@@ -65,9 +57,12 @@ func NewConfig(logger *slog.Logger) *Config {
 
 		// Kavita Configuration
 		KavitaAPI: kavitaAPIConfig{
+			Scheme:     constants.KavitaScheme,
 			Host:       constants.KavitaAPIHost,
 			Port:       constants.KavitaAPIPort,
 			PluginName: constants.KavitaAPIPluginName,
+			Timeout:    constants.KavitaAPITimeout,
+			APIKey:     constants.KavitaAPIKey,
 		},
 
 		// Display Configuration (4.2" e-paper = 400x300)
@@ -87,7 +82,7 @@ func (cfg *Config) GetServerURI() string {
 }
 
 func (cfg *Config) GetKavitaAPIURI() string {
-	return fmt.Sprintf("http://%s:%d", cfg.KavitaAPI.Host, cfg.KavitaAPI.Port)
+	return fmt.Sprintf("%s://%s:%d", cfg.KavitaAPI.Scheme, cfg.KavitaAPI.Host, cfg.KavitaAPI.Port)
 }
 
 func (cfg *Config) GetDisplayResolution() string {
