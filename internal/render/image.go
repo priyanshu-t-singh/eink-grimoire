@@ -41,6 +41,10 @@ func NewRenderer(baseCtx context.Context) *Renderer {
 		chromedp.NoSandbox,
 		chromedp.Headless,
 		chromedp.WindowSize(constants.DisplayWidth, constants.DisplayHeight),
+		// Bypass CORS & Private Network Access restrictions
+		chromedp.Flag("disable-web-security", true),
+		chromedp.Flag("allow-running-insecure-content", true),
+		chromedp.Flag("disable-features", "IsolateOrigins,site-per-process,BlockInsecurePrivateNetworkRequests"),
 	)
 	allocCtx, _ := chromedp.NewExecAllocator(baseCtx, opts...)
 	return &Renderer{allocCtx: allocCtx}
@@ -67,6 +71,18 @@ func (r *Renderer) RenderListPage(ctx context.Context, htmlContent string) ([]by
 	return ProcessPNGTo2bpp(pngBuf)
 }
 
+const waitForImagesJS = `
+Promise.all(
+    Array.from(document.images).map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise(resolve => {
+            img.addEventListener('load', resolve);
+            img.addEventListener('error', resolve); // avoid hanging if an image 404s
+        });
+    })
+)
+`
+
 // RenderBookFrames renders a full HTML book chapter and splits it into discrete 400x300 frames.
 func (r *Renderer) RenderBookFrames(ctx context.Context, htmlContent string, lineGap int) ([][]byte, error) {
 	taskCtx, cancel := chromedp.NewContext(r.allocCtx)
@@ -82,6 +98,7 @@ func (r *Renderer) RenderBookFrames(ctx context.Context, htmlContent string, lin
 		chromedp.EmulateViewport(int64(constants.DisplayWidth), int64(constants.DisplayHeight)),
 		chromedp.Navigate(dataURL),
 		chromedp.Evaluate(`document.fonts.ready.then(() => true)`, nil),
+		chromedp.Evaluate(waitForImagesJS, nil), // <-- Waits for images to download and decode
 		chromedp.Evaluate(`Math.ceil(document.body.scrollHeight)`, &fullHeight),
 		chromedp.Evaluate(`parseFloat(window.getComputedStyle(document.getElementById('content') || document.body).lineHeight) || 24`, &computedLineHeight),
 	)
@@ -108,17 +125,19 @@ func (r *Renderer) RenderBookFrames(ctx context.Context, htmlContent string, lin
 		return nil, fmt.Errorf("override full height metrics: %w", err)
 	}
 
-	// 3. Compute slice offsets with line-height snapping
+	// Compute slice offsets with line-height snapping
 	frameHeight := float64(constants.DisplayHeight)
 	step := math.Floor(frameHeight/computedLineHeight) * computedLineHeight
 	if step <= 0 {
-		step = frameHeight * 0.95 // 5% fallback overlap
+		step = frameHeight * 0.95
 	}
 
 	var frames [][]byte
 	y := 0.0
+
 	for {
 		clipY := y
+		// Clamp bottom edge
 		if clipY+frameHeight > float64(fullHeight) {
 			clipY = float64(fullHeight) - frameHeight
 			if clipY < 0 {
@@ -152,6 +171,7 @@ func (r *Renderer) RenderBookFrames(ctx context.Context, htmlContent string, lin
 		}
 		frames = append(frames, frame2bpp)
 
+		// Stop conditions
 		if clipY+frameHeight >= float64(fullHeight) || y+step >= float64(fullHeight) {
 			break
 		}

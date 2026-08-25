@@ -50,3 +50,14 @@ func (c *FrameCache) FrameCount(chapterID int) int {
 	defer c.mu.RUnlock()
 	return len(c.frames[c.key(chapterID)])
 }
+
+func (c *FrameCache) GetAllFrames(chapterID int) ([][]byte, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	frames, exists := c.frames[c.key(chapterID)]
+	if !exists || len(frames) == 0 {
+		return nil, false
+	}
+	return frames, true
+}

@@ -90,7 +90,7 @@ func (h *Handler) renderReaderPage(ctx context.Context, p *state.Page) ([]byte, 
 	format, _ := strconv.Atoi(p.Params["format"])
 	subPageIndex := p.State["sub_page"]
 
-	// Format 0: Manga / Comic (Single image per sub-page)
+	// Format 0: Manga / Comic
 	if format == 0 {
 		imgBytes, err := h.App.KavitaRepository.GetChapterPageImage(ctx, chapterID, subPageIndex)
 		if err != nil {
@@ -99,31 +99,37 @@ func (h *Handler) renderReaderPage(ctx context.Context, p *state.Page) ([]byte, 
 		return render.ProcessMangaImage(imgBytes)
 	}
 
-	// Format 1+: Book / EPUB (Cached sliced frames)
-	if frame, ok := h.App.FrameCache.Get(chapterID, subPageIndex); ok {
-		return frame, nil
+	// Format 1+: Book / EPUB
+	// 1. Check if all frames for this chapter are already cached
+	var frames [][]byte
+	if cachedFrames, exists := h.App.FrameCache.GetAllFrames(chapterID); exists {
+		frames = cachedFrames
+	} else {
+		// 2. Cache miss: Fetch and render full chapter into frames
+		chapterHTML, err := h.App.KavitaRepository.GetBookPage(ctx, chapterID, 0)
+		if err != nil {
+			return nil, fmt.Errorf("fetch book content: %w", err)
+		}
+
+		cleanHTML := render.SanitizeEPUBHTML(chapterHTML, h.App.Config.GetKavitaAPIURI())
+		renderedHTML, err := render.BuildReaderHTML(cleanHTML)
+		if err != nil {
+			return nil, fmt.Errorf("build reader html: %w", err)
+		}
+
+		frames, err = h.App.Renderer.RenderBookFrames(ctx, renderedHTML, 24)
+		if err != nil {
+			return nil, fmt.Errorf("render book frames: %w", err)
+		}
+
+		h.App.FrameCache.Set(chapterID, frames)
 	}
 
-	// Cache miss: Fetch full HTML from Kavita
-	chapterHTML, err := h.App.KavitaRepository.GetBookPage(ctx, chapterID, 0)
-	if err != nil {
-		return nil, fmt.Errorf("fetch book content: %w", err)
+	if len(frames) == 0 {
+		return nil, fmt.Errorf("no rendered frames produced for chapter %d", chapterID)
 	}
 
-	renderedHTML, err := render.BuildReaderHTML(chapterHTML)
-	if err != nil {
-		return nil, fmt.Errorf("build reader html: %w", err)
-	}
-
-	// Render full height and split into 400x300 slices
-	frames, err := h.App.Renderer.RenderBookFrames(ctx, renderedHTML, 24)
-	if err != nil {
-		return nil, fmt.Errorf("render book frames: %w", err)
-	}
-
-	h.App.FrameCache.Set(chapterID, frames)
-
-	// Clamp subPageIndex if it was out of bounds
+	// 3. Clamp index
 	if subPageIndex >= len(frames) {
 		subPageIndex = len(frames) - 1
 		p.State["sub_page"] = subPageIndex
