@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"le-grimoire/internal/middleware"
+	"le-grimoire/internal/render"
 	"net/http"
 )
 
@@ -18,5 +19,14 @@ func (h *Handler) CurrentPageHandler(w http.ResponseWriter, r *http.Request) {
 		h.RespondWithError(w, err)
 		return
 	}
-	h.RespondWithData(w, ds)
+
+	html := render.BuildPlaceholderHTML(*ds.Top())
+	frame, err := render.RenderFramebuffer(r.Context(), html)
+	if err != nil {
+		h.RespondWithError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Write(frame)
 }

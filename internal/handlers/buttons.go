@@ -31,7 +31,7 @@ func (h *Handler) PushButtonHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ds, err := h.App.DeviceRepository.GetDeviceState(deviceID) // TODO: confirm real accessor path
+	ds, err := h.App.DeviceRepository.GetDeviceState(deviceID)
 	if err != nil {
 		h.RespondWithError(w, err)
 		return
