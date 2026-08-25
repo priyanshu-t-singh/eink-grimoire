@@ -41,37 +41,38 @@ func (r *Repository) GetDeviceState(deviceID string) (*state.DeviceState, error)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			// Lazy Initialization
-			return &state.DeviceState{
-				DeviceID: deviceID,
-				NavStack: []state.StackFrame{
-					{Type: state.PageLibrary, Cursor: 0},
-				},
-				LastFrameHash: "",
-				UpdatedAt:     time.Now(),
-			}, nil
+			// Lazy initialization — matches state.NewDeviceState's root page exactly.
+			return state.NewDeviceState(deviceID), nil
 		}
 		return nil, err
 	}
 
-	var navStack []state.StackFrame
-	if err := json.Unmarshal(navStackJSON, &navStack); err != nil {
+	var stack []state.Page
+	if err := json.Unmarshal(navStackJSON, &stack); err != nil {
 		return nil, err
 	}
 
-	return &state.DeviceState{
-		DeviceID:      deviceID,
-		NavStack:      navStack,
-		LastFrameHash: lastFrameHash.String,
-		UpdatedAt:     updatedAt,
-	}, nil
+	ds := &state.DeviceState{
+		DeviceID:  deviceID,
+		Stack:     stack,
+		UpdatedAt: updatedAt,
+	}
+	if lastFrameHash.Valid {
+		ds.LastFrameHash = &lastFrameHash.String
+	}
+	return ds, nil
 }
 
 // SaveDeviceState upserts the current navigation stack and frame hash.
 func (r *Repository) SaveDeviceState(s *state.DeviceState) error {
-	navStackJSON, err := json.Marshal(s.NavStack)
+	navStackJSON, err := json.Marshal(s.Stack)
 	if err != nil {
 		return err
+	}
+
+	var lastFrameHash sql.NullString
+	if s.LastFrameHash != nil {
+		lastFrameHash = sql.NullString{String: *s.LastFrameHash, Valid: true}
 	}
 
 	query := `
@@ -83,6 +84,6 @@ func (r *Repository) SaveDeviceState(s *state.DeviceState) error {
 			updated_at = CURRENT_TIMESTAMP;
 	`
 
-	_, err = r.db.Exec(query, s.DeviceID, navStackJSON, s.LastFrameHash)
+	_, err = r.db.Exec(query, s.DeviceID, navStackJSON, lastFrameHash)
 	return err
 }

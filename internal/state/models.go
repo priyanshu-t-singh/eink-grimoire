@@ -6,50 +6,54 @@ import "time"
 type PageType string
 
 const (
-	PageLibrary  PageType = "library"
-	PageSeries   PageType = "series"
-	PageVolumes  PageType = "volumes"
-	PageChapters PageType = "chapters"
-	PageReader   PageType = "reader"
+	PageLibrary  PageType = "Library"
+	PageSeries   PageType = "Series"
+	PageBookList PageType = "BookList"
+	PageReader   PageType = "Reader"
 )
 
-type StackFrame struct {
-	Type PageType `json:"type"`
-
-	// Kavita Context IDs (0 if not applicable to the current PageType)
-	SeriesID  int `json:"series_id,omitempty"`
-	VolumeID  int `json:"volume_id,omitempty"`
-	ChapterID int `json:"chapter_id,omitempty"`
-
-	// Cursor represents the currently highlighted index in a list (Library/Series/Volumes)
-	// OR the current paginated page index in the Reader.
-	Cursor int `json:"cursor"`
+// Params: immutable identifiers needed to refetch content.
+// State: mutable cursor/scroll/sub-page position, changes in place.
+type Page struct {
+	Type   PageType          `json:"type"`
+	Params map[string]string `json:"params,omitempty"`
+	State  map[string]int    `json:"state"`
 }
 
 // DeviceState represents the full persisted state for a single e-ink device.
 type DeviceState struct {
-	DeviceID      string       `json:"device_id"`
-	NavStack      []StackFrame `json:"nav_stack"`
-	LastFrameHash string       `json:"last_frame_hash"` // Used to skip rendering if state hasn't changed
-	UpdatedAt     time.Time    `json:"updated_at"`
+	DeviceID      string    `json:"device_id"`
+	Stack         []Page    `json:"stack"`
+	LastFrameHash *string   `json:"last_frame_hash,omitempty"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
-func (s *DeviceState) Top() *StackFrame {
-	if len(s.NavStack) == 0 {
-		return &StackFrame{Type: PageLibrary, Cursor: 0}
+func NewDeviceState(deviceID string) *DeviceState {
+	return &DeviceState{
+		DeviceID: deviceID,
+		Stack: []Page{
+			{Type: PageLibrary, State: map[string]int{"cursor": 0, "scroll": 0}},
+		},
+		UpdatedAt: time.Now(),
 	}
-	return &s.NavStack[len(s.NavStack)-1]
+}
+
+func (s *DeviceState) Top() *Page {
+	if len(s.Stack) == 0 {
+		s.Stack = append(s.Stack, Page{Type: PageLibrary, State: map[string]int{"cursor": 0, "scroll": 0}})
+	}
+	return &s.Stack[len(s.Stack)-1]
 }
 
 func (s *DeviceState) Pop() {
-	if len(s.NavStack) > 1 {
-		s.NavStack = s.NavStack[:len(s.NavStack)-1]
+	if len(s.Stack) > 1 {
+		s.Stack = s.Stack[:len(s.Stack)-1]
 	} else {
 		// Empty stack defaults to Library root
-		s.NavStack = []StackFrame{{Type: PageLibrary, Cursor: 0}}
+		s.Stack = []Page{{Type: PageLibrary, State: map[string]int{"cursor": 0, "scroll": 0}}}
 	}
 }
 
-func (s *DeviceState) Push(frame StackFrame) {
-	s.NavStack = append(s.NavStack, frame)
+func (s *DeviceState) Push(page Page) {
+	s.Stack = append(s.Stack, page)
 }

@@ -1,17 +1,22 @@
 package handlers
 
 import (
+	"fmt"
 	"le-grimoire/internal/middleware"
 	"net/http"
 )
 
 func (h *Handler) CurrentPageHandler(w http.ResponseWriter, r *http.Request) {
-	deviceID := middleware.GetDeviceID(r.Context())
-	if deviceID == "" {
-		http.Error(w, "Device ID not found in context", http.StatusUnauthorized)
+	deviceID, ok := middleware.GetDeviceID(r.Context())
+	if !ok {
+		h.RespondWithStatusError(w, http.StatusUnauthorized, fmt.Errorf("device ID not found in headers"))
 		return
 	}
 
-	// TODO: Implement the logic to retrieve the current page information
-	h.RespondWithData(w, "Current page information")
+	ds, err := h.App.DeviceRepository.GetDeviceState(deviceID) // TODO: confirm real accessor path
+	if err != nil {
+		h.RespondWithError(w, err)
+		return
+	}
+	h.RespondWithData(w, ds)
 }

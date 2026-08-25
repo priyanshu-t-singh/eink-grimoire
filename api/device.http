@@ -11,3 +11,23 @@ GET {{baseUrl}}/health
 GET {{baseUrl}}/current_page
 X-Device-Id: {{deviceId}}
 Authorization: Bearer {{apiKey}}
+
+### Push Button
+POST {{baseUrl}}/push_button
+X-Device-Id: {{deviceId}}
+Authorization: Bearer {{apiKey}}
+
+{
+    "button_id": "A",
+    "type": "short_press"
+}
+
+### Long Button press
+POST {{baseUrl}}/push_button
+X-Device-Id: {{deviceId}}
+Authorization: Bearer {{apiKey}}
+
+{
+    "button_id": "E",
+    "type": "long_press"
+}
