@@ -1,30 +1,49 @@
 package state
 
-// ApplyButton mutates ds.Stack in place per the button table in the
-// architecture doc and returns a human-readable description of what
-// happened. Content fetch/render is intentionally out of scope here —
-// Params on pushed pages are stubbed with placeholder IDs.
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"strconv"
 
-func ApplyButton(ds *DeviceState, buttonID, pressType string) string {
+	"le-grimoire/internal/kavita"
+)
+
+// Machine drives state transitions backed by the Kavita data repository.
+type Machine struct {
+	kavita kavita.Repository
+	logger *slog.Logger
+}
+
+// NewMachine creates a state machine instance.
+func NewMachine(kavita kavita.Repository, logger *slog.Logger) *Machine {
+	return &Machine{
+		kavita: kavita,
+		logger: logger,
+	}
+}
+
+// ApplyButton mutates ds.Stack in place and returns an event description or an error.
+func (m *Machine) ApplyButton(ctx context.Context, ds *DeviceState, buttonID, pressType string) (string, error) {
 	p := ds.Top()
 
 	switch p.Type {
 	case PageLibrary, PageSeries, PageBookList:
-		return applyListButton(ds, p, buttonID, pressType)
+		return m.applyListButton(ctx, ds, p, buttonID, pressType)
 	case PageReader:
-		return applyReaderButton(ds, p, buttonID, pressType)
+		return m.applyReaderButton(ctx, ds, p, buttonID, pressType)
 	default:
-		return "unknown page type, no-op"
+		return "unknown page type, no-op", nil
 	}
 }
 
-func applyListButton(ds *DeviceState, p *Page, buttonID, pressType string) string {
-	if pressType == "long_press" {
+func (m *Machine) applyListButton(ctx context.Context, ds *DeviceState, p *Page, buttonID, pressType string) (string, error) {
+	if pressType == "long" || pressType == "long_press" {
 		switch buttonID {
 		case "E":
-			return "force refresh (cache bypass) — no state change"
+			return "force refresh requested", nil
 		default:
-			return buttonID + " long-press: unassigned, no-op"
+			return buttonID + " long-press: unassigned, no-op", nil
 		}
 	}
 
@@ -32,61 +51,110 @@ func applyListButton(ds *DeviceState, p *Page, buttonID, pressType string) strin
 	case "A": // Up
 		if p.State["cursor"] > 0 {
 			p.State["cursor"]--
+			ds.UpdatedAt = ds.UpdatedAt.UTC()
 		}
-		return "cursor up"
+		return fmt.Sprintf("cursor moved up to index %d", p.State["cursor"]), nil
+
 	case "B": // Down
-		p.State["cursor"]++ // NOTE: real impl clamps against fetched list length
-		return "cursor down"
+		count, err := m.getItemCount(ctx, p)
+		if err != nil {
+			return "", err
+		}
+		if p.State["cursor"] < count-1 {
+			p.State["cursor"]++
+			ds.UpdatedAt = ds.UpdatedAt.UTC()
+		}
+		return fmt.Sprintf("cursor moved down to index %d (max: %d)", p.State["cursor"], count-1), nil
+
 	case "C": // Select
-		return selectFromList(ds, p)
+		return m.selectFromList(ctx, ds, p)
+
 	case "D": // Back
-		if len(ds.Stack) == 1 {
-			return "back at root — no-op"
+		if len(ds.Stack) <= 1 {
+			return "back at root — no-op", nil
 		}
 		ds.Pop()
-		return "back — popped page"
+		return "back — popped page", nil
+
 	default:
-		return buttonID + " short-press: unassigned, no-op"
+		return buttonID + " short-press: unassigned, no-op", nil
 	}
 }
 
-func selectFromList(ds *DeviceState, p *Page) string {
+func (m *Machine) selectFromList(ctx context.Context, ds *DeviceState, p *Page) (string, error) {
 	switch p.Type {
 	case PageLibrary:
-		libID := stubID("lib", p.State["cursor"])
+		libraries, err := m.kavita.GetLibraries(ctx)
+		if err != nil {
+			return "", fmt.Errorf("fetch libraries: %w", err)
+		}
+		if len(libraries) == 0 || p.State["cursor"] >= len(libraries) {
+			return "no library at cursor", nil
+		}
+
+		selected := libraries[p.State["cursor"]]
 		ds.Push(Page{
 			Type:   PageSeries,
-			Params: map[string]string{"library_id": libID},
+			Params: map[string]string{"library_id": strconv.Itoa(selected.ID)},
 			State:  map[string]int{"cursor": 0, "scroll": 0},
 		})
-		return "selected library " + libID + " -> pushed Series"
+		return fmt.Sprintf("selected library %s (id: %d) -> pushed Series", selected.Name, selected.ID), nil
+
 	case PageSeries:
-		seriesID := stubID("series", p.State["cursor"])
+		libraryID, _ := strconv.Atoi(p.Params["library_id"])
+		seriesList, err := m.kavita.GetSeries(ctx, libraryID)
+		if err != nil {
+			return "", fmt.Errorf("fetch series: %w", err)
+		}
+		if len(seriesList) == 0 || p.State["cursor"] >= len(seriesList) {
+			return "no series at cursor", nil
+		}
+
+		selected := seriesList[p.State["cursor"]]
 		ds.Push(Page{
-			Type:   PageBookList,
-			Params: map[string]string{"series_id": seriesID},
-			State:  map[string]int{"cursor": 0, "scroll": 0},
+			Type: PageBookList,
+			Params: map[string]string{
+				"series_id": strconv.Itoa(selected.ID),
+				"format":    strconv.Itoa(selected.Format),
+			},
+			State: map[string]int{"cursor": 0, "scroll": 0},
 		})
-		return "selected series " + seriesID + " -> pushed BookList"
+		return fmt.Sprintf("selected series %s (id: %d) -> pushed BookList", selected.Name, selected.ID), nil
+
 	case PageBookList:
-		chapterID := stubID("chapter", p.State["cursor"])
+		seriesID, _ := strconv.Atoi(p.Params["series_id"])
+		chapters, err := m.kavita.GetFlattenedChapters(ctx, seriesID)
+		if err != nil {
+			return "", fmt.Errorf("fetch chapters: %w", err)
+		}
+		if len(chapters) == 0 || p.State["cursor"] >= len(chapters) {
+			return "no chapter at cursor", nil
+		}
+
+		selected := chapters[p.State["cursor"]]
 		ds.Push(Page{
-			Type:   PageReader,
-			Params: map[string]string{"chapter_id": chapterID},
-			State:  map[string]int{"sub_page": 0},
+			Type: PageReader,
+			Params: map[string]string{
+				"series_id":  p.Params["series_id"],
+				"volume_id":  strconv.Itoa(selected.VolumeID),
+				"chapter_id": strconv.Itoa(selected.ID),
+				"format":     p.Params["format"],
+			},
+			State: map[string]int{"sub_page": 0},
 		})
-		return "selected chapter " + chapterID + " -> pushed Reader"
+		return fmt.Sprintf("selected chapter %s (id: %d) -> pushed Reader", selected.Title, selected.ID), nil
 	}
-	return "select: nothing to do"
+
+	return "select: nothing to do", nil
 }
 
-func applyReaderButton(ds *DeviceState, p *Page, buttonID, pressType string) string {
-	if pressType == "long_press" {
+func (m *Machine) applyReaderButton(ctx context.Context, ds *DeviceState, p *Page, buttonID, pressType string) (string, error) {
+	if pressType == "long" || pressType == "long_press" {
 		switch buttonID {
 		case "E":
-			return "force refresh (cache bypass) — no state change"
+			return "force refresh requested", nil
 		default:
-			return buttonID + " long-press: unassigned, no-op"
+			return buttonID + " long-press: unassigned, no-op", nil
 		}
 	}
 
@@ -94,45 +162,105 @@ func applyReaderButton(ds *DeviceState, p *Page, buttonID, pressType string) str
 	case "A": // Previous sub-page
 		if p.State["sub_page"] > 0 {
 			p.State["sub_page"]--
+			ds.UpdatedAt = ds.UpdatedAt.UTC()
+			return fmt.Sprintf("previous sub-page -> %d", p.State["sub_page"]), nil
 		}
-		return "previous sub-page"
+		return "already at first sub-page", nil
+
 	case "B": // Next sub-page
-		p.State["sub_page"]++ // NOTE: real impl clamps against cached frameCount
-		return "next sub-page"
+		p.State["sub_page"]++
+		ds.UpdatedAt = ds.UpdatedAt.UTC()
+		return fmt.Sprintf("next sub-page -> %d", p.State["sub_page"]), nil
+
 	case "C": // Back to BookList
 		ds.Pop()
-		return "back — popped to BookList"
+		return "back — popped to BookList", nil
+
 	case "D": // Previous chapter
-		return "previous chapter: stub — no-op at first chapter" // open item: chapter-boundary
-	case "E": // Next chapter (short)
-		return "next chapter: stub — no-op at last chapter" // open item: chapter-boundary
+		return m.navigateChapter(ctx, ds, p, -1)
+
+	case "E": // Next chapter
+		return m.navigateChapter(ctx, ds, p, 1)
+
 	default:
-		return buttonID + " short-press: unassigned, no-op"
+		return buttonID + " short-press: unassigned, no-op", nil
 	}
 }
 
-func stubID(kind string, cursor int) string {
-	return kind + "-" + itoa(cursor)
+// navigateChapter advances or reverses the active chapter inside the Reader view.
+func (m *Machine) navigateChapter(ctx context.Context, ds *DeviceState, p *Page, direction int) (string, error) {
+	seriesID, _ := strconv.Atoi(p.Params["series_id"])
+	currentChapterID, _ := strconv.Atoi(p.Params["chapter_id"])
+
+	chapters, err := m.kavita.GetFlattenedChapters(ctx, seriesID)
+	if err != nil {
+		return "", fmt.Errorf("navigate chapter: %w", err)
+	}
+
+	currentIdx := -1
+	for i, ch := range chapters {
+		if ch.ID == currentChapterID {
+			currentIdx = i
+			break
+		}
+	}
+
+	if currentIdx == -1 {
+		return "current chapter not found in series list", nil
+	}
+
+	targetIdx := currentIdx + direction
+	if targetIdx < 0 {
+		return "already at the first chapter — no-op", nil
+	}
+	if targetIdx >= len(chapters) {
+		return "already at the last chapter — no-op", nil
+	}
+
+	targetChapter := chapters[targetIdx]
+	p.Params["chapter_id"] = strconv.Itoa(targetChapter.ID)
+	p.Params["volume_id"] = strconv.Itoa(targetChapter.VolumeID)
+	p.State["sub_page"] = 0
+	ds.UpdatedAt = ds.UpdatedAt.UTC()
+
+	// Keep BookList cursor under Reader synchronized
+	if len(ds.Stack) >= 2 {
+		bookListIdx := len(ds.Stack) - 2
+		if ds.Stack[bookListIdx].Type == PageBookList {
+			ds.Stack[bookListIdx].State["cursor"] = targetIdx
+		}
+	}
+
+	return fmt.Sprintf("switched chapter to %s (id: %d)", targetChapter.Title, targetChapter.ID), nil
 }
 
-func itoa(i int) string {
-	if i == 0 {
-		return "0"
+// getItemCount calculates dynamic boundary counts for cursor navigation.
+func (m *Machine) getItemCount(ctx context.Context, p *Page) (int, error) {
+	switch p.Type {
+	case PageLibrary:
+		libs, err := m.kavita.GetLibraries(ctx)
+		if err != nil {
+			return 0, err
+		}
+		return len(libs), nil
+
+	case PageSeries:
+		libID, _ := strconv.Atoi(p.Params["library_id"])
+		seriesList, err := m.kavita.GetSeries(ctx, libID)
+		if err != nil {
+			return 0, err
+		}
+		return len(seriesList), nil
+
+	case PageBookList:
+		seriesID, _ := strconv.Atoi(p.Params["series_id"])
+		chapters, err := m.kavita.GetFlattenedChapters(ctx, seriesID)
+		if err != nil {
+			return 0, err
+		}
+		return len(chapters), nil
+
+	default:
+		return 0, nil
 	}
-	neg := i < 0
-	if neg {
-		i = -i
-	}
-	var buf [20]byte
-	pos := len(buf)
-	for i > 0 {
-		pos--
-		buf[pos] = byte('0' + i%10)
-		i /= 10
-	}
-	if neg {
-		pos--
-		buf[pos] = '-'
-	}
-	return string(buf[pos:])
 }

@@ -6,6 +6,8 @@ import (
 
 	"le-grimoire/internal/device"
 	"le-grimoire/internal/kavita"
+	"le-grimoire/internal/render"
+	"le-grimoire/internal/state"
 )
 
 func (a *App) InitRepositories() {
@@ -18,8 +20,14 @@ func (a *App) InitRepositories() {
 	})
 	kavitaRepo := kavita.NewRepository(kavitaClient)
 
+	a.KavitaRepository = kavitaRepo
+
 	authCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
+	a.StateMachine = state.NewMachine(kavitaRepo, a.Logger)
+	a.Renderer = render.NewRenderer(context.Background())
+	a.FrameCache = render.NewFrameCache()
 
 	if err := kavitaRepo.Authenticate(authCtx); err != nil {
 		a.Logger.Warn("Initial Kavita auth failed (will retry reactively on requests)", "error", err)

@@ -5,6 +5,8 @@ import (
 	"le-grimoire/internal/constants"
 	"le-grimoire/internal/device"
 	"le-grimoire/internal/kavita"
+	"le-grimoire/internal/render"
+	"le-grimoire/internal/state"
 	"le-grimoire/internal/util"
 	"log/slog"
 )
@@ -17,8 +19,12 @@ type App struct {
 	Version  string
 
 	// Repository
-	KavitaRepository *kavita.Repository
+	KavitaRepository kavita.Repository
 	DeviceRepository *device.Repository
+
+	StateMachine *state.Machine
+	Renderer     *render.Renderer
+	FrameCache   *render.FrameCache
 
 	// Shutdown
 	ShutdownLogger func()

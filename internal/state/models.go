@@ -12,6 +12,7 @@ const (
 	PageReader   PageType = "Reader"
 )
 
+// Page represents an entry in the navigation stack.
 // Params: immutable identifiers needed to refetch content.
 // State: mutable cursor/scroll/sub-page position, changes in place.
 type Page struct {
@@ -56,4 +57,5 @@ func (s *DeviceState) Pop() {
 
 func (s *DeviceState) Push(page Page) {
 	s.Stack = append(s.Stack, page)
+	s.UpdatedAt = time.Now().UTC()
 }

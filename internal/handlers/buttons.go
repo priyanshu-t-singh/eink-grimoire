@@ -37,7 +37,23 @@ func (h *Handler) PushButtonHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	action := state.ApplyButton(ds, req.ButtonID, req.Type)
+	action, err := h.App.StateMachine.ApplyButton(r.Context(), ds, req.ButtonID, req.Type)
+	if err != nil {
+		h.RespondWithError(w, err)
+		return
+	}
+
+	// Invalidate cache if force refresh (Long-press E) was triggered on Reader page
+	if (req.ButtonID == "E") && (req.Type == "long" || req.Type == "long_press") {
+		top := ds.Top()
+		if top.Type == state.PageReader {
+			var chapterID int
+			fmt.Sscanf(top.Params["chapter_id"], "%d", &chapterID)
+			if chapterID > 0 && h.App.FrameCache != nil {
+				h.App.FrameCache.Invalidate(chapterID)
+			}
+		}
+	}
 
 	if err := h.App.DeviceRepository.SaveDeviceState(ds); err != nil {
 		h.RespondWithError(w, err)
