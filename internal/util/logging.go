@@ -2,6 +2,7 @@ package util
 
 import (
 	"context"
+	"le-grimoire/internal/middleware"
 	"log/slog"
 	"os"
 	"time"
@@ -56,6 +57,9 @@ type ContextHandler struct {
 }
 
 func (h *ContextHandler) Handle(ctx context.Context, r slog.Record) error {
+	if deviceID, ok := middleware.GetDeviceID(ctx); ok {
+		r.AddAttrs(slog.String("device_id", deviceID))
+	}
 	return h.Handler.Handle(ctx, r)
 }
 

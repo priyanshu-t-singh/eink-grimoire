@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"time"
@@ -16,9 +17,26 @@ func (w *wrappedWriter) WriteHeader(statusCode int) {
 	w.statusCode = statusCode
 }
 
+const logContextKey contextKey = "middleware.logging.contextHolder"
+
+type ContextHolder struct {
+	Ctx context.Context
+}
+
+// helper function to pass context from downstream handlers to the logging middleware
+func UpdateContext(r *http.Request, ctx context.Context) {
+	if holder, ok := r.Context().Value(logContextKey).(*ContextHolder); ok {
+		holder.Ctx = ctx
+	}
+}
+
 func Logging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
+
+		holder := &ContextHolder{Ctx: r.Context()}
+		r = r.WithContext(context.WithValue(r.Context(), logContextKey, holder))
+
 		wrapped := &wrappedWriter{
 			ResponseWriter: w,
 			statusCode:     http.StatusOK,
@@ -27,7 +45,7 @@ func Logging(next http.Handler) http.Handler {
 		next.ServeHTTP(wrapped, r)
 
 		slog.InfoContext(
-			r.Context(),
+			holder.Ctx,
 			"request",
 			slog.String("method", r.Method),
 			slog.String("path", r.URL.Path),

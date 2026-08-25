@@ -57,15 +57,18 @@ func DeviceAuth(repo *device.Repository) func(http.Handler) http.Handler {
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), DeviceIDKey, deviceID)
+			ctx := SetDeviceID(r.Context(), deviceID)
+			UpdateContext(r, ctx) // Update the context for logging middleware
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
 
-func GetDeviceID(ctx context.Context) string {
-	if id, ok := ctx.Value(DeviceIDKey).(string); ok {
-		return id
-	}
-	return ""
+func SetDeviceID(ctx context.Context, deviceID string) context.Context {
+	return context.WithValue(ctx, DeviceIDKey, deviceID)
+}
+
+func GetDeviceID(ctx context.Context) (string, bool) {
+	val, ok := ctx.Value(DeviceIDKey).(string)
+	return val, ok
 }
