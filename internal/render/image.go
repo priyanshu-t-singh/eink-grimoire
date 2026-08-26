@@ -9,6 +9,7 @@ import (
 	"image/png"
 	"math"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -46,6 +47,13 @@ func NewRenderer(baseCtx context.Context) *Renderer {
 		chromedp.Flag("allow-running-insecure-content", true),
 		chromedp.Flag("disable-features", "IsolateOrigins,site-per-process,BlockInsecurePrivateNetworkRequests"),
 	)
+
+	// If CHROME_PATH is set via environment variable, use it.
+	// Otherwise, chromedp will automatically look for Chrome/Chromium on the host system.
+	if chromePath := os.Getenv("CHROME_PATH"); chromePath != "" {
+		opts = append(opts, chromedp.ExecPath(chromePath))
+	}
+
 	allocCtx, _ := chromedp.NewExecAllocator(baseCtx, opts...)
 	return &Renderer{allocCtx: allocCtx}
 }
