@@ -1,0 +1,41 @@
+services:
+  le-grimoire:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        HOST: "0.0.0.0"
+    image: le-grimoire:latest
+    container_name: le-grimoire
+    restart: unless-stopped
+    init: true # Required for proper chromedp zombie process cleanup
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./.db:/app/.db
+    networks:
+      - media_net
+
+  kavita:
+    image: jvmilazz0/kavita:latest
+    container_name: kavita
+    volumes:
+        # The following volumes are mounted to the host machine's MEDIA_PATH directory.
+        # You can change the MEDIA_PATH environment variable in your .env file to point
+        # to a different location on your host machine.
+        - ${MEDIA_PATH}/manga:/manga
+        - ${MEDIA_PATH}/comics:/comics
+        - ${MEDIA_PATH}/books:/books
+        - ${MEDIA_PATH}/lightnovels:/lightnovels
+        - ${MEDIA_PATH}/.config/kavita:/kavita/config     # /kavita/config must not be changed
+    environment:
+        - TZ=Asia/Kolkata
+    ports:
+        - "5000:5000"
+    restart: unless-stopped
+    networks:
+      - media_net
+
+networks:
+  media_net:
+    driver: bridge

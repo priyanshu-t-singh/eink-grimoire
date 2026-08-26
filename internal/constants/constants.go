@@ -2,9 +2,10 @@ package constants
 
 import "time"
 
+var Host = "127.0.0.1" // Injected at build time using ldflags, default is localhost for local development
+
 const (
 	Version = "0.1.0"
-	Host    = "127.0.0.1"
 	Port    = 8080
 )
 

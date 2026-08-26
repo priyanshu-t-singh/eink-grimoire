@@ -2,6 +2,7 @@ BINARY_NAME=le-grimoire
 BUILD_DIR=bin
 MAIN_FILE=main.go
 
+DOCKER_USERNAME=priyanshu9943
 DOCKER_IMAGE=le-grimoire
 DOCKER_TAG=latest
 
@@ -34,11 +35,16 @@ lint: ## Run golangci-lint (requires installation)
 
 docker-build:
 	@echo "Building Docker image..."
-	docker build -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
+	docker build -t $(DOCKER_USERNAME)/$(DOCKER_IMAGE):$(DOCKER_TAG) .
 
 docker-run:
 	@echo "Running Docker container..."
-	docker run -p 8080:8080 $(DOCKER_IMAGE):$(DOCKER_TAG)
+	docker run \
+		-p 8080:8080 \
+		--name $(BINARY_NAME) \
+		--rm \
+		-v $(PWD)/.db:/app/.db \
+		$(DOCKER_USERNAME)/$(DOCKER_IMAGE):$(DOCKER_TAG)
 
 build-linux:
 	@echo "Building for Linux..."
