@@ -88,7 +88,13 @@ func (h *Handler) renderCurrentState(ctx context.Context, ds *state.DeviceState)
 func (h *Handler) renderReaderPage(ctx context.Context, p *state.Page) ([]byte, error) {
 	chapterID, _ := strconv.Atoi(p.Params["chapter_id"])
 	format, _ := strconv.Atoi(p.Params["format"])
+	bookPageIndex := p.State["book_page"]
 	subPageIndex := p.State["sub_page"]
+
+	h.App.Logger.Debug(fmt.Sprintf(
+		"Rendering reader page: chapter=%d, format=%d, book_page=%d, sub_page=%d",
+		chapterID, format, bookPageIndex, subPageIndex,
+	))
 
 	// Format 0: Manga / Comic
 	if format == 0 {
@@ -100,18 +106,17 @@ func (h *Handler) renderReaderPage(ctx context.Context, p *state.Page) ([]byte, 
 	}
 
 	// Format 1+: Book / EPUB
-	// 1. Check if all frames for this chapter are already cached
 	var frames [][]byte
-	if cachedFrames, exists := h.App.FrameCache.GetAllFrames(chapterID); exists {
+	if cachedFrames, exists := h.App.FrameCache.GetAllFrames(chapterID, bookPageIndex); exists {
 		frames = cachedFrames
 	} else {
-		// 2. Cache miss: Fetch and render full chapter into frames
-		chapterHTML, err := h.App.KavitaRepository.GetBookPage(ctx, chapterID, 0)
+		// Single-fragment fetch: fetch only the current Kavita page fragment
+		rawHTML, err := h.App.KavitaRepository.GetBookPage(ctx, chapterID, bookPageIndex)
 		if err != nil {
-			return nil, fmt.Errorf("fetch book content: %w", err)
+			return nil, fmt.Errorf("fetch book content (chapter %d, page %d): %w", chapterID, bookPageIndex, err)
 		}
 
-		cleanHTML := render.SanitizeEPUBHTML(chapterHTML, h.App.Config.GetKavitaAPIURI())
+		cleanHTML := render.SanitizeEPUBHTML(rawHTML, h.App.Config.GetKavitaAPIURI())
 		renderedHTML, err := render.BuildReaderHTML(cleanHTML)
 		if err != nil {
 			return nil, fmt.Errorf("build reader html: %w", err)
@@ -122,14 +127,15 @@ func (h *Handler) renderReaderPage(ctx context.Context, p *state.Page) ([]byte, 
 			return nil, fmt.Errorf("render book frames: %w", err)
 		}
 
-		h.App.FrameCache.Set(chapterID, frames)
+		// Store frames keyed by (chapterID, bookPageIndex)
+		h.App.FrameCache.Set(chapterID, bookPageIndex, frames)
 	}
 
 	if len(frames) == 0 {
-		return nil, fmt.Errorf("no rendered frames produced for chapter %d", chapterID)
+		return nil, fmt.Errorf("no rendered frames produced for chapter %d (book_page %d)", chapterID, bookPageIndex)
 	}
 
-	// 3. Clamp index
+	// Clamp sub_page within current fragment frames
 	if subPageIndex >= len(frames) {
 		subPageIndex = len(frames) - 1
 		p.State["sub_page"] = subPageIndex

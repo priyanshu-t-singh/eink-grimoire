@@ -2,6 +2,7 @@ package render
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 )
 
@@ -9,7 +10,7 @@ const RenderVersion = 1 // Bump this when HTML/CSS templates change
 
 type FrameCache struct {
 	mu     sync.RWMutex
-	frames map[string][][]byte // key: "chapter:{id}:v{version}"
+	frames map[string][][]byte // key: "chapter:{id}:page:{page}:v{version}"
 }
 
 func NewFrameCache() *FrameCache {
@@ -18,46 +19,67 @@ func NewFrameCache() *FrameCache {
 	}
 }
 
-func (c *FrameCache) key(chapterID int) string {
-	return fmt.Sprintf("chapter:%d:v%d", chapterID, RenderVersion)
+func (c *FrameCache) key(chapterID int, bookPageIndex int) string {
+	return fmt.Sprintf("chapter:%d:page:%d:v%d", chapterID, bookPageIndex, RenderVersion)
 }
 
-func (c *FrameCache) Get(chapterID int, subPageIndex int) ([]byte, bool) {
+func (c *FrameCache) chapterPrefix(chapterID int) string {
+	return fmt.Sprintf("chapter:%d:", chapterID)
+}
+
+// Get returns a single rendered 24-line sub-page frame.
+func (c *FrameCache) Get(chapterID int, bookPageIndex int, subPageIndex int) ([]byte, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	chapterFrames, exists := c.frames[c.key(chapterID)]
-	if !exists || subPageIndex < 0 || subPageIndex >= len(chapterFrames) {
+	pageFrames, exists := c.frames[c.key(chapterID, bookPageIndex)]
+	if !exists || subPageIndex < 0 || subPageIndex >= len(pageFrames) {
 		return nil, false
 	}
-	return chapterFrames[subPageIndex], true
+	return pageFrames[subPageIndex], true
 }
 
-func (c *FrameCache) Set(chapterID int, frames [][]byte) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.frames[c.key(chapterID)] = frames
-}
-
-func (c *FrameCache) Invalidate(chapterID int) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	delete(c.frames, c.key(chapterID))
-}
-
-func (c *FrameCache) FrameCount(chapterID int) int {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	return len(c.frames[c.key(chapterID)])
-}
-
-func (c *FrameCache) GetAllFrames(chapterID int) ([][]byte, bool) {
+func (c *FrameCache) GetAllFrames(chapterID int, bookPageIndex int) ([][]byte, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	frames, exists := c.frames[c.key(chapterID)]
+	frames, exists := c.frames[c.key(chapterID, bookPageIndex)]
 	if !exists || len(frames) == 0 {
 		return nil, false
 	}
 	return frames, true
+}
+
+func (c *FrameCache) Set(chapterID int, bookPageIndex int, frames [][]byte) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.frames[c.key(chapterID, bookPageIndex)] = frames
+}
+
+func (c *FrameCache) FrameCount(chapterID int, bookPageIndex int) int {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return len(c.frames[c.key(chapterID, bookPageIndex)])
+}
+
+func (c *FrameCache) InvalidatePage(chapterID int, bookPageIndex int) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.frames, c.key(chapterID, bookPageIndex))
+}
+
+func (c *FrameCache) InvalidateChapter(chapterID int) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	prefix := c.chapterPrefix(chapterID)
+	for k := range c.frames {
+		if strings.HasPrefix(k, prefix) {
+			delete(c.frames, k)
+		}
+	}
+}
+
+func (c *FrameCache) Invalidate(chapterID int) {
+	c.InvalidateChapter(chapterID)
 }

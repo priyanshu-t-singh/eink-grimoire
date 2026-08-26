@@ -140,7 +140,9 @@ func (m *Machine) selectFromList(ctx context.Context, ds *DeviceState, p *Page) 
 				"chapter_id": strconv.Itoa(selected.ID),
 				"format":     p.Params["format"],
 			},
-			State: map[string]int{"sub_page": 0},
+			// book_page: which Kavita-level fragment is loaded (0-indexed)
+			// sub_page:  which rendered 24-line frame within that fragment
+			State: map[string]int{"book_page": 0, "sub_page": 0},
 		})
 		return fmt.Sprintf("selected chapter %s (id: %d) -> pushed Reader", selected.Title, selected.ID), nil
 	}
@@ -151,7 +153,11 @@ func (m *Machine) selectFromList(ctx context.Context, ds *DeviceState, p *Page) 
 func (m *Machine) applyReaderButton(ctx context.Context, ds *DeviceState, p *Page, buttonID, pressType string) (string, error) {
 	if pressType == "long" || pressType == "long_press" {
 		switch buttonID {
-		case "E":
+		case "C": // Long C: previous chapter
+			return m.navigateChapter(ctx, ds, p, -1)
+		case "F": // Long F: next chapter
+			return m.navigateChapter(ctx, ds, p, 1)
+		case "E": // Long E: force refresh
 			return "force refresh requested", nil
 		default:
 			return buttonID + " long-press: unassigned, no-op", nil
@@ -159,32 +165,59 @@ func (m *Machine) applyReaderButton(ctx context.Context, ds *DeviceState, p *Pag
 	}
 
 	switch buttonID {
-	case "A": // Previous sub-page
+	case "A": // Scroll up within current page fragment
 		if p.State["sub_page"] > 0 {
 			p.State["sub_page"]--
 			ds.UpdatedAt = ds.UpdatedAt.UTC()
-			return fmt.Sprintf("previous sub-page -> %d", p.State["sub_page"]), nil
+			return fmt.Sprintf("scroll up -> sub_page %d", p.State["sub_page"]), nil
 		}
-		return "already at first sub-page", nil
+		return "already at top of page", nil
 
-	case "B": // Next sub-page
+	case "B": // Scroll down within current page fragment
 		p.State["sub_page"]++
 		ds.UpdatedAt = ds.UpdatedAt.UTC()
-		return fmt.Sprintf("next sub-page -> %d", p.State["sub_page"]), nil
+		return fmt.Sprintf("scroll down -> sub_page %d", p.State["sub_page"]), nil
 
-	case "C": // Back to BookList
+	case "C": // Previous page index
+		return m.navigateBookPage(ctx, ds, p, -1)
+
+	case "F": // Next page index
+		return m.navigateBookPage(ctx, ds, p, 1)
+
+	case "D": // Back to BookList
 		ds.Pop()
 		return "back — popped to BookList", nil
-
-	case "D": // Previous chapter
-		return m.navigateChapter(ctx, ds, p, -1)
-
-	case "E": // Next chapter
-		return m.navigateChapter(ctx, ds, p, 1)
 
 	default:
 		return buttonID + " short-press: unassigned, no-op", nil
 	}
+}
+
+// navigateBookPage advances/reverses the Kavita-level book-page fragment within
+// the current chapter. Resets sub_page to 0 since scroll position is meaningless
+// across a fragment change.
+func (m *Machine) navigateBookPage(ctx context.Context, ds *DeviceState, p *Page, direction int) (string, error) {
+	chapterID, _ := strconv.Atoi(p.Params["chapter_id"])
+	meta, err := m.kavita.GetChapterMetadata(ctx, chapterID)
+	if err != nil {
+		return "", fmt.Errorf("navigate book page: %w", err)
+	}
+	totalPages := meta.Pages
+	if totalPages <= 0 {
+		totalPages = 1
+	}
+	current := p.State["book_page"]
+	target := current + direction
+	if target < 0 {
+		return "already at first page of chapter — no-op", nil
+	}
+	if target >= totalPages {
+		return "already at last page of chapter — no-op", nil
+	}
+	p.State["book_page"] = target
+	p.State["sub_page"] = 0
+	ds.UpdatedAt = ds.UpdatedAt.UTC()
+	return fmt.Sprintf("page index -> %d/%d", target, totalPages-1), nil
 }
 
 // navigateChapter advances or reverses the active chapter inside the Reader view.
@@ -220,6 +253,7 @@ func (m *Machine) navigateChapter(ctx context.Context, ds *DeviceState, p *Page,
 	targetChapter := chapters[targetIdx]
 	p.Params["chapter_id"] = strconv.Itoa(targetChapter.ID)
 	p.Params["volume_id"] = strconv.Itoa(targetChapter.VolumeID)
+	p.State["book_page"] = 0
 	p.State["sub_page"] = 0
 	ds.UpdatedAt = ds.UpdatedAt.UTC()
 
