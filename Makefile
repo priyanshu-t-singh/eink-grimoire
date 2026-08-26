@@ -6,7 +6,10 @@ DOCKER_USERNAME=priyanshu9943
 DOCKER_IMAGE=le-grimoire
 DOCKER_TAG=latest
 
-.PHONY: build run clean dev docker-build docker-run build-linux build-windows build-mac build-all
+OUTPUT_TAR      ?= $(DOCKER_IMAGE)-$(DOCKER_TAG).tar
+FULL_IMAGE_NAME := $(DOCKER_USERNAME)/$(DOCKER_IMAGE):$(DOCKER_TAG)
+
+.PHONY: build run clean dev docker-build docker-run docker-save build-linux build-windows build-mac build-all
 
 dev:
 	go run $(MAIN_FILE)
@@ -35,7 +38,7 @@ lint: ## Run golangci-lint (requires installation)
 
 docker-build:
 	@echo "Building Docker image..."
-	docker build -t $(DOCKER_USERNAME)/$(DOCKER_IMAGE):$(DOCKER_TAG) .
+	docker build -t $(FULL_IMAGE_NAME) .
 
 docker-run:
 	@echo "Running Docker container..."
@@ -44,7 +47,12 @@ docker-run:
 		--name $(BINARY_NAME) \
 		--rm \
 		-v $(PWD)/.db:/app/.db \
-		$(DOCKER_USERNAME)/$(DOCKER_IMAGE):$(DOCKER_TAG)
+		$(FULL_IMAGE_NAME)
+
+docker-save:
+	@echo "Saving $(FULL_IMAGE_NAME) to $(OUTPUT_TAR)..."
+	docker save -o $(OUTPUT_TAR) $(FULL_IMAGE_NAME)
+	@echo "Saved successfully: $(OUTPUT_TAR)"
 
 build-linux:
 	@echo "Building for Linux..."
