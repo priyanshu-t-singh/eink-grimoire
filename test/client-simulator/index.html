@@ -142,8 +142,8 @@
     const logConsole = document.getElementById('logConsole');
     const statusIndicator = document.getElementById('statusIndicator');
 
-    // 4-gray lookup shades (White -> Light Gray -> Dark Gray -> Black)
-    const GRAY_LEVELS = [255, 170, 85, 0];
+    // 4-gray lookup shades (Black, Dark Gray, Light Gray, White)
+    const GRAY_LEVELS = [0, 85, 170, 255];
 
     function getHeaders() {
       return {
