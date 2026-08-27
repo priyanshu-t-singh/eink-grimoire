@@ -32,6 +32,11 @@ vet:
 	go vet ./...
 
 lint: ## Run golangci-lint (requires installation)
+	if ! command -v golangci-lint &> /dev/null; then \
+		echo "golangci-lint not found. Please install it first."; \
+		echo "You can install it by running: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"; \
+		exit 1; \
+	fi
 	@echo "Linting..."
 	golangci-lint run
 
