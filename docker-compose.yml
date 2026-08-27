@@ -10,8 +10,9 @@ services:
     restart: unless-stopped
     environment:
       - TZ=Asia/Kolkata
-      - CHROME_REMOTE_URL=http://headless-shell:9222
-      - KAVITA_URL=http://kavita:5000
+      - CHROME_REMOTE_URL=${CHROME_REMOTE_URL}
+      - KAVITA_BASE_URL=${KAVITA_BASE_URL}
+      - KAVITA_API_KEY=${KAVITA_API_KEY}
     ports:
       - "8080:8080"
     volumes:
@@ -26,14 +27,14 @@ services:
     image: jvmilazz0/kavita:latest
     container_name: kavita
     volumes:
-      # The following volumes are mounted to the host machine's MEDIA_PATH directory.
-      # You can change the MEDIA_PATH environment variable in your .env file to point
+      # The following volumes are mounted to the host machine's MEDIA_DIR directory.
+      # You can change the MEDIA_DIR environment variable in your .env file to point
       # to a different location on your host machine.
-      - ${MEDIA_PATH}/manga:/manga
-      - ${MEDIA_PATH}/comics:/comics
-      - ${MEDIA_PATH}/books:/books
-      - ${MEDIA_PATH}/lightnovels:/lightnovels
-      - ${MEDIA_PATH}/.config/kavita:/kavita/config     # /kavita/config must not be changed
+      - ${MEDIA_DIR}/manga:/manga
+      - ${MEDIA_DIR}/comics:/comics
+      - ${MEDIA_DIR}/books:/books
+      - ${MEDIA_DIR}/lightnovels:/lightnovels
+      - ${MEDIA_DIR}/.config/kavita:/kavita/config     # /kavita/config must not be changed
     environment:
       - TZ=Asia/Kolkata
     expose:
