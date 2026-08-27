@@ -8,14 +8,14 @@ import (
 	"path/filepath"
 
 	migrations "le-grimoire/db"
-	"le-grimoire/internal/constants"
+	"le-grimoire/internal/util"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pressly/goose/v3"
 )
 
 func SetupDatabase() (*sql.DB, error) {
-	db, err := Open(constants.SqliteDatabasePath)
+	db, err := Open(util.GetSqliteDatabasePath())
 	if err != nil {
 		return nil, fmt.Errorf("db failed to open: %w", err)
 	}

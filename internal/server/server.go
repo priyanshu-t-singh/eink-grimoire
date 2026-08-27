@@ -3,6 +3,9 @@ package server
 import (
 	"le-grimoire/internal/core"
 	"le-grimoire/internal/handlers"
+	"log"
+
+	"github.com/joho/godotenv"
 )
 
 func StartServer() {
@@ -10,6 +13,11 @@ func StartServer() {
 }
 
 func startApp() {
+	// Load .env file if it exists
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, using system environment variables")
+	}
+
 	// Create the app instance
 	app := core.NewApp()
 	app.InitLogging()

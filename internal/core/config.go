@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"le-grimoire/internal/constants"
+	"le-grimoire/internal/util"
 	"log/slog"
 	"time"
 )
@@ -26,9 +27,7 @@ type displayConfig struct {
 }
 
 type kavitaAPIConfig struct {
-	Host       string
-	Port       int
-	Scheme     string
+	BaseURL    string
 	APIKey     string
 	PluginName string
 	Timeout    time.Duration
@@ -38,31 +37,25 @@ type logsConfig struct {
 	Dir string
 }
 
-// TODO: Implement a proper configuration loading mechanism (e.g., from a file or environment variables)
 func NewConfig(logger *slog.Logger) *Config {
 	logger.Info("Loading configuration...")
-
-	defaultHost := constants.Host
-	defaultPort := constants.Port
 
 	return &Config{
 		Version: constants.Version,
 		Server: serverConfig{
-			Host: defaultHost,
-			Port: defaultPort,
+			Host: util.GetServerHost(),
+			Port: util.GetServerPort(),
 		},
 		Logs: logsConfig{
-			Dir: constants.LogFileDirectory,
+			Dir: util.GetLogFileDirectory(),
 		},
 
 		// Kavita Configuration
 		KavitaAPI: kavitaAPIConfig{
-			Scheme:     constants.KavitaScheme,
-			Host:       constants.KavitaAPIHost,
-			Port:       constants.KavitaAPIPort,
+			BaseURL:    util.GetKavitaBaseURL(),
 			PluginName: constants.KavitaAPIPluginName,
 			Timeout:    constants.KavitaAPITimeout,
-			APIKey:     constants.KavitaAPIKey,
+			APIKey:     util.GetKavitaAPIKey(),
 		},
 
 		// Display Configuration (4.2" e-paper = 400x300)
@@ -82,7 +75,7 @@ func (cfg *Config) GetServerURI() string {
 }
 
 func (cfg *Config) GetKavitaAPIURI() string {
-	return fmt.Sprintf("%s://%s:%d", cfg.KavitaAPI.Scheme, cfg.KavitaAPI.Host, cfg.KavitaAPI.Port)
+	return cfg.KavitaAPI.BaseURL
 }
 
 func (cfg *Config) GetDisplayResolution() string {

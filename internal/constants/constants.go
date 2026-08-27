@@ -1,20 +1,20 @@
 package constants
 
-import "time"
-
-var Host = "127.0.0.1" // Injected at build time using ldflags, default is localhost for local development
-
-const (
-	Version = "0.1.0"
-	Port    = 8080
+import (
+	"time"
 )
 
 const (
+	Host = "127.0.0.1"
+	Port = "8080"
+)
+
+// Injected at build time using ldflags, default is 0.1.0 for local development
+var Version = "0.1.0"
+
+const (
+	KavitaAPIBaseURL    = "http://kavita:5000"
 	KavitaAPIPluginName = "le-grimoire"
-	KavitaScheme        = "http"
-	KavitaAPIHost       = "127.0.0.1"
-	KavitaAPIKey        = "your_kavita_api_key_here" // Replace with your actual Kavita API key
-	KavitaAPIPort       = 5000
 	KavitaAPITimeout    = 10 * time.Second
 )
 
@@ -24,5 +24,7 @@ const (
 	DisplayWidth  = 400
 )
 
-const SqliteDatabasePath string = "./.db/database.sqlite"
-const LogFileDirectory string = "./.logs"
+const (
+	SqliteDatabasePath = "./.db/database.sqlite"
+	LogFileDirectory   = "./.logs"
+)

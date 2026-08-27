@@ -9,11 +9,11 @@ import (
 	"image/png"
 	"math"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
 	"le-grimoire/internal/constants"
+	"le-grimoire/internal/util"
 
 	"github.com/chromedp/cdproto/emulation"
 	"github.com/chromedp/cdproto/page"
@@ -41,8 +41,8 @@ type Renderer struct {
 // 2. CHROME_PATH (Local custom binary)
 // 3. Default (Chromedp auto-discovers local Chrome/Chromium)
 func NewRenderer(baseCtx context.Context) *Renderer {
-	remoteURL := os.Getenv("CHROME_REMOTE_URL")
-	chromePath := os.Getenv("CHROME_PATH")
+	remoteURL := util.GetChromeRemoteURL()
+	chromePath := util.GetChromePath()
 
 	var (
 		allocCtx    context.Context

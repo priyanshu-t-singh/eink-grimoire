@@ -5,6 +5,7 @@ go 1.27.0
 require (
 	github.com/chromedp/cdproto v0.0.0-20260714215040-dc233986426f
 	github.com/chromedp/chromedp v0.16.0
+	github.com/joho/godotenv v1.5.1
 	github.com/lmittmann/tint v1.2.0
 	github.com/mattn/go-sqlite3 v1.14.50
 	github.com/pressly/goose/v3 v3.27.3
