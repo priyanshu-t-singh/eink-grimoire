@@ -1,5 +1,7 @@
-# Stage 1: Build binary using Debian/glibc
-FROM golang:1.27-bookworm AS builder
+# Stage 1: Build
+FROM golang:1.27-alpine AS builder
+
+RUN apk add --no-cache gcc musl-dev
 
 WORKDIR /app
 
@@ -18,10 +20,9 @@ RUN CGO_ENABLED=1 GOOS=linux go build \
     -o server main.go
 
 # Stage 2: Runtime image
-FROM chromedp/headless-shell:latest
+FROM alpine:latest
 
-# Default path for this specific container image
-ENV CHROME_PATH=/headless-shell/headless-shell
+RUN apk add --no-cache ca-certificates
 
 WORKDIR /app
 COPY --from=builder /app/server .

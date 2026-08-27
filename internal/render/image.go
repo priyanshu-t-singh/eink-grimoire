@@ -18,7 +18,7 @@ import (
 	"github.com/chromedp/cdproto/emulation"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
-	"golang.org/x/image/draw" // <--- xdraw provides scaling algorithms like ApproxBiLinear / BiLinear
+	"golang.org/x/image/draw"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/image/math/fixed"
@@ -31,12 +31,48 @@ var WavesharePalette = color.Palette{
 	color.Gray{Y: 255}, // 11: White
 }
 
-// Renderer wraps a reusable chromedp allocator context.
 type Renderer struct {
-	allocCtx context.Context
+	allocCtx    context.Context
+	allocCancel context.CancelFunc
 }
 
+// NewRenderer initializes a Renderer based on priority:
+// 1. CHROME_REMOTE_URL (Remote headless container/instance)
+// 2. CHROME_PATH (Local custom binary)
+// 3. Default (Chromedp auto-discovers local Chrome/Chromium)
 func NewRenderer(baseCtx context.Context) *Renderer {
+	remoteURL := os.Getenv("CHROME_REMOTE_URL")
+	chromePath := os.Getenv("CHROME_PATH")
+
+	var (
+		allocCtx    context.Context
+		allocCancel context.CancelFunc
+	)
+
+	switch {
+	case remoteURL != "":
+		allocCtx, allocCancel = chromedp.NewRemoteAllocator(baseCtx, remoteURL)
+
+	case chromePath != "":
+		allocCtx, allocCancel = newLocalAllocator(baseCtx, chromePath)
+
+	default:
+		allocCtx, allocCancel = newLocalAllocator(baseCtx, "")
+	}
+
+	return &Renderer{
+		allocCtx:    allocCtx,
+		allocCancel: allocCancel,
+	}
+}
+
+func (r *Renderer) Close() {
+	if r.allocCancel != nil {
+		r.allocCancel()
+	}
+}
+
+func newLocalAllocator(parent context.Context, execPath string) (context.Context, context.CancelFunc) {
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.DisableGPU,
 		chromedp.NoSandbox,
@@ -48,14 +84,11 @@ func NewRenderer(baseCtx context.Context) *Renderer {
 		chromedp.Flag("disable-features", "IsolateOrigins,site-per-process,BlockInsecurePrivateNetworkRequests"),
 	)
 
-	// If CHROME_PATH is set via environment variable, use it.
-	// Otherwise, chromedp will automatically look for Chrome/Chromium on the host system.
-	if chromePath := os.Getenv("CHROME_PATH"); chromePath != "" {
-		opts = append(opts, chromedp.ExecPath(chromePath))
+	if execPath != "" {
+		opts = append(opts, chromedp.ExecPath(execPath))
 	}
 
-	allocCtx, _ := chromedp.NewExecAllocator(baseCtx, opts...)
-	return &Renderer{allocCtx: allocCtx}
+	return chromedp.NewExecAllocator(parent, opts...)
 }
 
 // RenderListPage renders an HTML list view directly into a 2bpp 30000-byte buffer.

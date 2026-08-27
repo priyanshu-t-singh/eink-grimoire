@@ -5,14 +5,20 @@ services:
       dockerfile: Dockerfile
       args:
         HOST: "0.0.0.0"
-    image: le-grimoire:latest
+    image: priyanshu9943/le-grimoire:latest
     container_name: le-grimoire
     restart: unless-stopped
-    init: true # Required for proper chromedp zombie process cleanup
+    environment:
+      - TZ=Asia/Kolkata
+      - CHROME_REMOTE_URL=http://headless-shell:9222
+      - KAVITA_URL=http://kavita:5000
     ports:
       - "8080:8080"
     volumes:
       - ./.db:/app/.db
+    depends_on:
+      - headless-shell
+      - kavita
     networks:
       - media_net
 
@@ -20,19 +26,44 @@ services:
     image: jvmilazz0/kavita:latest
     container_name: kavita
     volumes:
-        # The following volumes are mounted to the host machine's MEDIA_PATH directory.
-        # You can change the MEDIA_PATH environment variable in your .env file to point
-        # to a different location on your host machine.
-        - ${MEDIA_PATH}/manga:/manga
-        - ${MEDIA_PATH}/comics:/comics
-        - ${MEDIA_PATH}/books:/books
-        - ${MEDIA_PATH}/lightnovels:/lightnovels
-        - ${MEDIA_PATH}/.config/kavita:/kavita/config     # /kavita/config must not be changed
+      # The following volumes are mounted to the host machine's MEDIA_PATH directory.
+      # You can change the MEDIA_PATH environment variable in your .env file to point
+      # to a different location on your host machine.
+      - ${MEDIA_PATH}/manga:/manga
+      - ${MEDIA_PATH}/comics:/comics
+      - ${MEDIA_PATH}/books:/books
+      - ${MEDIA_PATH}/lightnovels:/lightnovels
+      - ${MEDIA_PATH}/.config/kavita:/kavita/config     # /kavita/config must not be changed
     environment:
-        - TZ=Asia/Kolkata
-    ports:
-        - "5000:5000"
+      - TZ=Asia/Kolkata
+    expose:
+      - "5000"
+    # ports:
+    #   - "5000:5000"
     restart: unless-stopped
+    networks:
+      - media_net
+
+  headless-shell:
+    image: chromedp/headless-shell:latest
+    container_name: headless-shell
+    restart: unless-stopped
+    init: true # Required for proper chromedp zombie process cleanup
+    shm_size: 2gb # Crucial: prevents Chrome crashes under memory load
+    command:
+      - --remote-allow-origins=*
+      - --disable-gpu
+      - --no-sandbox
+      - --disable-web-security
+      - --allow-running-insecure-content
+      - --disable-features=IsolateOrigins,site-per-process,BlockInsecurePrivateNetworkRequests
+    expose:
+      - "9222"
+    # Exposes the remote debugging port to the host machine for external access
+    # ports:
+    #   - "9223:9222"
+    environment:
+      - TZ=Asia/Kolkata
     networks:
       - media_net
 
