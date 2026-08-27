@@ -34,7 +34,11 @@ func (h *Handler) JSON(w http.ResponseWriter, status int, data any) {
 			http.Error(w, "Failed to marshal JSON", http.StatusInternalServerError)
 			return
 		}
-		w.Write(jsonData)
+		_, err = w.Write(jsonData)
+		if err != nil {
+			http.Error(w, "Failed to write JSON", http.StatusInternalServerError)
+			return
+		}
 	}
 }
 

@@ -48,7 +48,12 @@ func (h *Handler) PushButtonHandler(w http.ResponseWriter, r *http.Request) {
 		top := ds.Top()
 		if top.Type == state.PageReader {
 			var chapterID int
-			fmt.Sscanf(top.Params["chapter_id"], "%d", &chapterID)
+			_, err := fmt.Sscanf(top.Params["chapter_id"], "%d", &chapterID)
+			if err != nil {
+				h.RespondWithError(w, err)
+				return
+			}
+
 			if chapterID > 0 && h.App.FrameCache != nil {
 				h.App.FrameCache.Invalidate(chapterID)
 			}
