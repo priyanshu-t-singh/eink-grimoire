@@ -19,14 +19,25 @@ RUN CGO_ENABLED=1 GOOS=linux go build \
     -ldflags="-w -s -X 'le-grimoire/internal/constants.Host=${HOST}'" \
     -o server main.go
 
+# Build the register-device binary
+RUN CGO_ENABLED=1 GOOS=linux go build \
+    -trimpath \
+    -o register-device cmd/register-device/main.go
+
 # Stage 2: Runtime image
 FROM alpine:latest
 
 RUN apk add --no-cache ca-certificates
 
 WORKDIR /app
-COPY --from=builder /app/server .
+
+# Copy both compiled binaries from the builder stage
+COPY --from=builder /app/bin/server /usr/local/bin/server
+COPY --from=builder /app/bin/register-device /usr/local/bin/register-device
+
+# Database mount here
+RUN mkdir -p /app/.db
 
 EXPOSE 8080
 
-ENTRYPOINT ["/app/server"]
+ENTRYPOINT ["/app/bin/server"]

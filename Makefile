@@ -9,13 +9,14 @@ DOCKER_TAG=latest
 OUTPUT_TAR      ?= $(DOCKER_IMAGE)-$(DOCKER_TAG).tar
 FULL_IMAGE_NAME := $(DOCKER_USERNAME)/$(DOCKER_IMAGE):$(DOCKER_TAG)
 
-.PHONY: build run clean dev docker-build docker-run docker-save build-linux build-windows build-mac build-all
+.PHONY: build run clean dev docker-build docker-run docker-save build-linux build-windows build-mac build-all register-device fmt vet lint
 
 dev:
 	go run $(MAIN_FILE)
 
 build:
 	go build -o $(BUILD_DIR)/$(BINARY_NAME) $(MAIN_FILE)
+	chmod +x $(BUILD_DIR)/$(BINARY_NAME)
 
 run: build
 	./$(BUILD_DIR)/$(BINARY_NAME)
@@ -74,3 +75,6 @@ build-mac:
 	GOOS=darwin GOARCH=arm64 go build -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-arm64 $(MAIN_FILE)
 
 build-all: build-linux build-windows build-mac
+
+register-device:
+	go run cmd/register-device/main.go -id "$(ID)" -key "$(KEY)" -db ".db/database.sqlite"
