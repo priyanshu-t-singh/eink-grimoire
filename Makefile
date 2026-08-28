@@ -17,8 +17,9 @@ dev:
 	go run $(MAIN_FILE)
 
 build:
-	go build -o $(BUILD_DIR)/$(BINARY_NAME) $(MAIN_FILE)
-	chmod +x $(BUILD_DIR)/$(BINARY_NAME)
+	go build \
+		-ldflags="-w -s -X 'le-grimoire/internal/constants.Version=$(VERSION)'" \
+		-o $(BUILD_DIR)/$(BINARY_NAME) $(MAIN_FILE)
 
 run: build
 	./$(BUILD_DIR)/$(BINARY_NAME)
