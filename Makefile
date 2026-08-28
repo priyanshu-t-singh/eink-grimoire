@@ -5,6 +5,7 @@ MAIN_FILE=main.go
 DOCKER_USERNAME=priyanshu9943
 DOCKER_IMAGE=le-grimoire
 DOCKER_TAG=latest
+DOCKER_PLATFORM ?= linux/amd64,linux/arm64
 
 OUTPUT_TAR      ?= $(DOCKER_IMAGE)-$(DOCKER_TAG).tar
 FULL_IMAGE_NAME := $(DOCKER_USERNAME)/$(DOCKER_IMAGE):$(DOCKER_TAG)
@@ -44,7 +45,7 @@ lint: ## Run golangci-lint (requires installation)
 
 docker-build:
 	@echo "Building Docker image..."
-	docker build -t $(FULL_IMAGE_NAME) .
+	docker buildx build --platform $(DOCKER_PLATFORM) -t $(FULL_IMAGE_NAME) --push .
 
 docker-run:
 	@echo "Running Docker container..."

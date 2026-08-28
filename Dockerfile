@@ -1,8 +1,6 @@
 # Stage 1: Build
 FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS builder
 
-RUN apk add --no-cache gcc musl-dev
-
 WORKDIR /app
 
 # Cache Go modules
@@ -19,11 +17,11 @@ ARG HOST=0.0.0.0
 # Build the binaries with CGO enabled for cross-compilation
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build \
+    CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build \
       -trimpath \
       -ldflags="-w -s -X 'le-grimoire/internal/constants.Host=${HOST}'" \
       -o server main.go && \
-    CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build \
+    CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build \
       -trimpath \
       -o register-device cmd/register-device/main.go
 
