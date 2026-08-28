@@ -4,6 +4,7 @@
 
 # Go build artifacts and dependencies
 bin/
+release/
 *.exe
 *.test
 *.out

@@ -1,5 +1,6 @@
 BINARY_NAME=le-grimoire
 BUILD_DIR=bin
+RELEASE_DIR=release
 MAIN_FILE=main.go
 
 DOCKER_USERNAME=priyanshu9943
@@ -71,29 +72,29 @@ build-linux:
 	@echo "Building for Linux..."
 	GOOS=linux GOARCH=amd64 go build \
 		-ldflags="-w -s -X 'le-grimoire/internal/constants.Version=$(VERSION)'" \
-		-o $(BUILD_DIR)/$(BINARY_NAME)-$(VERSION)-linux-amd64 $(MAIN_FILE)
+		-o $(RELEASE_DIR)/$(VERSION)/$(BINARY_NAME)-$(VERSION)-linux-amd64 $(MAIN_FILE)
 	GOOS=linux GOARCH=arm64 go build \
 		-ldflags="-w -s -X 'le-grimoire/internal/constants.Version=$(VERSION)'" \
-		-o $(BUILD_DIR)/$(BINARY_NAME)-$(VERSION)-linux-arm64 $(MAIN_FILE)
+		-o $(RELEASE_DIR)/$(VERSION)/$(BINARY_NAME)-$(VERSION)-linux-arm64 $(MAIN_FILE)
 
 build-windows:
 	@echo "Building for Windows..."
 	GOOS=windows GOARCH=amd64 go build \
 		-ldflags="-w -s -X 'le-grimoire/internal/constants.Version=$(VERSION)'" \
-		-o $(BUILD_DIR)/$(BINARY_NAME)-$(VERSION)-windows-amd64.exe $(MAIN_FILE)
+		-o $(RELEASE_DIR)/$(VERSION)/$(BINARY_NAME)-$(VERSION)-windows-amd64.exe $(MAIN_FILE)
 	GOOS=windows GOARCH=arm64 go build \
 		-ldflags="-w -s -X 'le-grimoire/internal/constants.Version=$(VERSION)'" \
-		-o $(BUILD_DIR)/$(BINARY_NAME)-$(VERSION)-windows-arm64.exe $(MAIN_FILE)
+		-o $(RELEASE_DIR)/$(VERSION)/$(BINARY_NAME)-$(VERSION)-windows-arm64.exe $(MAIN_FILE)
 
 build-mac:
 	@echo "Building for macOS (Intel)..."
 	GOOS=darwin GOARCH=amd64 go build \
 		-ldflags="-w -s -X 'le-grimoire/internal/constants.Version=$(VERSION)'" \
-		-o $(BUILD_DIR)/$(BINARY_NAME)-$(VERSION)-darwin-amd64 $(MAIN_FILE)
+		-o $(RELEASE_DIR)/$(VERSION)/$(BINARY_NAME)-$(VERSION)-darwin-amd64 $(MAIN_FILE)
 	@echo "Building for macOS (Apple Silicon)..."
 	GOOS=darwin GOARCH=arm64 go build \
 		-ldflags="-w -s -X 'le-grimoire/internal/constants.Version=$(VERSION)'" \
-		-o $(BUILD_DIR)/$(BINARY_NAME)-$(VERSION)-darwin-arm64 $(MAIN_FILE)
+		-o $(RELEASE_DIR)/$(VERSION)/$(BINARY_NAME)-$(VERSION)-darwin-arm64 $(MAIN_FILE)
 
 build-all: build-linux build-windows build-mac
 
