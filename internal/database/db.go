@@ -10,8 +10,8 @@ import (
 	migrations "le-grimoire/db"
 	"le-grimoire/internal/util"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/pressly/goose/v3"
+	_ "modernc.org/sqlite"
 )
 
 func SetupDatabase() (*sql.DB, error) {
