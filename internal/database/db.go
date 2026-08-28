@@ -29,7 +29,7 @@ func Open(dbPath string) (*sql.DB, error) {
 	}
 
 	dsn := fmt.Sprintf("%s?_journal_mode=WAL&_busy_timeout=5000&_foreign_keys=ON", dbPath)
-	db, err := sql.Open("sqlite3", dsn)
+	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
@@ -41,7 +41,7 @@ func Open(dbPath string) (*sql.DB, error) {
 
 	// Configure Goose
 	goose.SetBaseFS(migrations.MigrationsFS)
-	if err := goose.SetDialect("sqlite3"); err != nil {
+	if err := goose.SetDialect("sqlite"); err != nil {
 		return nil, fmt.Errorf("failed to set goose dialect: %w", err)
 	}
 

@@ -26,7 +26,7 @@ func main() {
 		log.Fatalf("Usage: go run cmd/register-device/main.go -id <device_id> -key <api_key>")
 	}
 
-	db, err := sql.Open("sqlite3", *dbPath)
+	db, err := sql.Open("sqlite", *dbPath)
 	if err != nil {
 		log.Fatalf("Failed to open DB: %v", err)
 	}
