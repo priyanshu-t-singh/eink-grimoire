@@ -32,7 +32,11 @@ func RunHTTPServer(app *App, router *http.ServeMux) {
 
 func runServerWithGracefulShutdown(app *App, server *http.Server) {
 	serverAddr := app.Config.GetServerAddr()
-	app.Logger.Info("Starting HTTP server", "address", serverAddr)
+	app.Logger.Info(
+		"Starting HTTP server",
+		slog.String("address", serverAddr),
+		slog.String("version", app.Config.Version),
+	)
 
 	go func() {
 		app.Logger.Info("Server is running at " + app.Config.GetServerURI())
