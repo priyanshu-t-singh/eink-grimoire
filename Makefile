@@ -4,11 +4,12 @@ MAIN_FILE=main.go
 
 DOCKER_USERNAME=priyanshu9943
 DOCKER_IMAGE=le-grimoire
-DOCKER_TAG=latest
 DOCKER_PLATFORM ?= linux/amd64,linux/arm64
 
+VERSION ?= 1.0.0
+
 OUTPUT_TAR      ?= $(DOCKER_IMAGE)-$(DOCKER_TAG).tar
-FULL_IMAGE_NAME := $(DOCKER_USERNAME)/$(DOCKER_IMAGE):$(DOCKER_TAG)
+FULL_IMAGE_NAME := $(DOCKER_USERNAME)/$(DOCKER_IMAGE)
 
 .PHONY: build run clean dev docker-build docker-run docker-save build-linux build-windows build-mac build-all register-device fmt vet lint
 
@@ -45,7 +46,11 @@ lint: ## Run golangci-lint (requires installation)
 
 docker-build:
 	@echo "Building Docker image..."
-	docker buildx build --platform $(DOCKER_PLATFORM) -t $(FULL_IMAGE_NAME) --push .
+	docker buildx build \
+		--platform $(DOCKER_PLATFORM) \
+		-t $(FULL_IMAGE_NAME):$(VERSION) \
+		-t $(FULL_IMAGE_NAME):latest \
+		--push .
 
 docker-run:
 	@echo "Running Docker container..."
@@ -64,10 +69,12 @@ docker-save:
 build-linux:
 	@echo "Building for Linux..."
 	GOOS=linux GOARCH=amd64 go build -o $(BUILD_DIR)/$(BINARY_NAME)-linux-amd64 $(MAIN_FILE)
+	GOOS=linux GOARCH=arm64 go build -o $(BUILD_DIR)/$(BINARY_NAME)-linux-arm64 $(MAIN_FILE)
 
 build-windows:
 	@echo "Building for Windows..."
 	GOOS=windows GOARCH=amd64 go build -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe $(MAIN_FILE)
+	GOOS=windows GOARCH=arm64 go build -o $(BUILD_DIR)/$(BINARY_NAME)-windows-arm64.exe $(MAIN_FILE)
 
 build-mac:
 	@echo "Building for macOS (Intel)..."
