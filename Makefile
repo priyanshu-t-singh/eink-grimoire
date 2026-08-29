@@ -2,15 +2,22 @@ BINARY_NAME=le-grimoire
 BUILD_DIR=bin
 RELEASE_DIR=release
 MAIN_FILE=main.go
-
 DOCKER_USERNAME=priyanshu9943
-DOCKER_IMAGE=le-grimoire
 DOCKER_PLATFORM ?= linux/amd64,linux/arm64
-
 VERSION ?= 1.0.0
-
-OUTPUT_TAR      ?= $(DOCKER_IMAGE)-$(DOCKER_TAG).tar
+DOCKER_IMAGE=$(BINARY_NAME)
+OUTPUT_TAR      ?= $(DOCKER_IMAGE)-$(VERSION).tar
 FULL_IMAGE_NAME := $(DOCKER_USERNAME)/$(DOCKER_IMAGE)
+
+LDFLAGS := -w -s -X 'le-grimoire/internal/constants.Version=$(VERSION)'
+
+# $(1)=GOOS $(2)=GOARCH $(3)=output suffix (e.g. .exe or empty)
+define cross_build
+	@echo "Building for $(1)/$(2)..."
+	GOOS=$(1) GOARCH=$(2) go build \
+		-ldflags="$(LDFLAGS)" \
+		-o $(RELEASE_DIR)/$(VERSION)/$(BINARY_NAME)-$(VERSION)-$(1)-$(2)$(3) $(MAIN_FILE)
+endef
 
 .PHONY: build run clean dev docker-build docker-run docker-save build-linux build-windows build-mac build-all register-device fmt vet lint
 
@@ -18,9 +25,7 @@ dev:
 	go run $(MAIN_FILE)
 
 build:
-	go build \
-		-ldflags="-w -s -X 'le-grimoire/internal/constants.Version=$(VERSION)'" \
-		-o $(BUILD_DIR)/$(BINARY_NAME) $(MAIN_FILE)
+	go build -ldflags="$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY_NAME) $(MAIN_FILE)
 
 run: build
 	./$(BUILD_DIR)/$(BINARY_NAME)
@@ -45,7 +50,6 @@ lint: ## Run golangci-lint (requires installation)
 	@echo "Linting..."
 	golangci-lint run
 
-
 docker-build:
 	@echo "Building Docker image..."
 	docker buildx build \
@@ -69,32 +73,16 @@ docker-save:
 	@echo "Saved successfully: $(OUTPUT_TAR)"
 
 build-linux:
-	@echo "Building for Linux..."
-	GOOS=linux GOARCH=amd64 go build \
-		-ldflags="-w -s -X 'le-grimoire/internal/constants.Version=$(VERSION)'" \
-		-o $(RELEASE_DIR)/$(VERSION)/$(BINARY_NAME)-$(VERSION)-linux-amd64 $(MAIN_FILE)
-	GOOS=linux GOARCH=arm64 go build \
-		-ldflags="-w -s -X 'le-grimoire/internal/constants.Version=$(VERSION)'" \
-		-o $(RELEASE_DIR)/$(VERSION)/$(BINARY_NAME)-$(VERSION)-linux-arm64 $(MAIN_FILE)
+	$(call cross_build,linux,amd64)
+	$(call cross_build,linux,arm64)
 
 build-windows:
-	@echo "Building for Windows..."
-	GOOS=windows GOARCH=amd64 go build \
-		-ldflags="-w -s -X 'le-grimoire/internal/constants.Version=$(VERSION)'" \
-		-o $(RELEASE_DIR)/$(VERSION)/$(BINARY_NAME)-$(VERSION)-windows-amd64.exe $(MAIN_FILE)
-	GOOS=windows GOARCH=arm64 go build \
-		-ldflags="-w -s -X 'le-grimoire/internal/constants.Version=$(VERSION)'" \
-		-o $(RELEASE_DIR)/$(VERSION)/$(BINARY_NAME)-$(VERSION)-windows-arm64.exe $(MAIN_FILE)
+	$(call cross_build,windows,amd64,.exe)
+	$(call cross_build,windows,arm64,.exe)
 
 build-mac:
-	@echo "Building for macOS (Intel)..."
-	GOOS=darwin GOARCH=amd64 go build \
-		-ldflags="-w -s -X 'le-grimoire/internal/constants.Version=$(VERSION)'" \
-		-o $(RELEASE_DIR)/$(VERSION)/$(BINARY_NAME)-$(VERSION)-darwin-amd64 $(MAIN_FILE)
-	@echo "Building for macOS (Apple Silicon)..."
-	GOOS=darwin GOARCH=arm64 go build \
-		-ldflags="-w -s -X 'le-grimoire/internal/constants.Version=$(VERSION)'" \
-		-o $(RELEASE_DIR)/$(VERSION)/$(BINARY_NAME)-$(VERSION)-darwin-arm64 $(MAIN_FILE)
+	$(call cross_build,darwin,amd64)
+	$(call cross_build,darwin,arm64)
 
 build-all: build-linux build-windows build-mac
 
