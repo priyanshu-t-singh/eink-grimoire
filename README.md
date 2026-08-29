@@ -89,6 +89,31 @@ docker compose logs -f
     make run
     ```
 
+### Help and available Makefile targets:
+
+```sh
+$ make help
+build-all            Cross-compile for all platforms and generate checksums
+build                Build the binary for the current platform
+build-linux          Cross-compile for Linux (amd64, arm64)
+build-mac            Cross-compile for macOS (amd64, arm64)
+build-windows        Cross-compile for Windows (amd64, arm64)
+checksums            Generate SHA256 checksums for release binaries
+clean-all            Remove build and release artifacts
+clean                Remove build artifacts
+dev                  Run the app without building a binary
+docker-build         Build and push a multi-platform Docker image
+docker-run           Run the Docker container for the current VERSION
+docker-save          Save the Docker image to a tarball
+fmt                  Format code
+help                 Show this help
+lint                 Run golangci-lint (requires installation)
+register-device      Register a device (usage: make register-device ID=... KEY=...)
+run                  Build and run the binary
+test                 Run tests
+vet                  Vet code
+```
+
 ## ⚙️ First-Time Device Setup
 
 - **Hardware Credentials:** Each physical ESP32 has its unique `device_id` and secret `API Key` hardcoded in firmware, authenticated against the server's `devices` database table. For guide click [here](./docs/device-registration.md).
