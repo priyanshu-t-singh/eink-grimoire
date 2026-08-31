@@ -8,14 +8,14 @@ import (
 	"path/filepath"
 
 	migrations "le-grimoire/db"
-	"le-grimoire/internal/util"
 
 	"github.com/pressly/goose/v3"
 	_ "modernc.org/sqlite"
 )
 
-func SetupDatabase() (*sql.DB, error) {
-	db, err := Open(util.GetSqliteDatabasePath())
+// TODO: This function is not required
+func SetupDatabase(dbPath string) (*sql.DB, error) {
+	db, err := Open(dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("db failed to open: %w", err)
 	}

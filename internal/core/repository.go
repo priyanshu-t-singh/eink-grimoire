@@ -8,15 +8,15 @@ import (
 	"le-grimoire/internal/kavita"
 	"le-grimoire/internal/render"
 	"le-grimoire/internal/state"
+	"le-grimoire/internal/util"
 )
 
+// TODO: set up a proper dependency injection framework for this app
 func (a *App) InitRepositories() {
 	// Initialize Kavita Repository
 	kavitaClient := kavita.NewClient(kavita.Config{
-		BaseURL:    a.Config.GetKavitaAPIURI(),
-		APIKey:     a.Config.KavitaAPI.APIKey,
-		PluginName: a.Config.KavitaAPI.PluginName,
-		Timeout:    a.Config.KavitaAPI.Timeout,
+		BaseURL: util.GetKavitaBaseURL(),
+		APIKey:  util.GetKavitaAPIKey(),
 	})
 	kavitaRepo := kavita.NewRepository(kavitaClient)
 

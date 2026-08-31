@@ -1,9 +1,13 @@
 package core
 
-import "le-grimoire/internal/database"
+import (
+	"le-grimoire/internal/database"
+	"path/filepath"
+)
 
 func (a *App) InitDatabase() {
-	db, err := database.SetupDatabase()
+	dbPath := filepath.Join(a.Config.AppDataDir, a.Config.Database.Name) + ".db"
+	db, err := database.SetupDatabase(dbPath)
 	if err != nil {
 		a.Logger.Error("failed to setup database", "err", err)
 		panic(err)

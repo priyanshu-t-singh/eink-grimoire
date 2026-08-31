@@ -40,7 +40,6 @@ func runServerWithGracefulShutdown(app *App, server *http.Server) {
 
 	go func() {
 		app.Logger.Info("Server is running at " + app.Config.GetServerURI())
-		app.Logger.Info("Display resolution: " + app.Config.GetDisplayResolution())
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			app.Logger.Error("server failed to serve", "error", err)
 			panic(err)

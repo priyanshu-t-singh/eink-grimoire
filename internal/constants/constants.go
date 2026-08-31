@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	Host = "127.0.0.1"
-	Port = "8080"
+	DefaultHost = "127.0.0.1"
+	DefaultPort = 8321
 )
 
 // NOTE: Injected at build time using ldflags, default is `dev` for local development
@@ -28,6 +28,5 @@ const (
 // TODO: move it to .config/le-grimoire/config.toml and make it configurable
 // TODO: get the config path from env or default to $HOME/.config/le-grimoire/config.toml
 const (
-	SqliteDatabasePath = "./.db/database.sqlite"
-	LogFileDirectory   = "./.logs"
+	ConfigFileName = "config.toml"
 )

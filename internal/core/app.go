@@ -36,8 +36,14 @@ func NewApp() *App {
 	logger := util.NewLogger()
 	logger.Info("Initializing application...")
 
+	cfg, err := NewConfig(&ConfigOptions{}, logger)
+	if err != nil {
+		logger.Error("failed to load config", "error", err)
+		return nil
+	}
+
 	return &App{
-		Config:   NewConfig(logger),
+		Config:   cfg,
 		Logger:   logger,
 		Database: nil,
 		Version:  constants.Version,
