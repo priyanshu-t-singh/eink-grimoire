@@ -23,10 +23,8 @@ func (h *Handler) CurrentPageHandler(w http.ResponseWriter, r *http.Request) {
 		ds = state.NewDeviceState(deviceID)
 	}
 
-	// Render page based on current top of stack
 	frame, err := h.renderCurrentState(r.Context(), ds)
 	if err != nil {
-		// Log error and fallback to pure stdlib 30,000-byte bitmap (never 500 to ESP32)
 		frame = render.RenderFallbackErrorBitmap(err.Error())
 	}
 
@@ -97,6 +95,7 @@ func (h *Handler) renderReaderPage(ctx context.Context, p *state.Page) ([]byte, 
 	))
 
 	// Format 0: Manga / Comic
+	// TODO: Requires testing
 	if format == 0 {
 		imgBytes, err := h.App.KavitaRepository.GetChapterPageImage(ctx, chapterID, subPageIndex)
 		if err != nil {
@@ -110,7 +109,6 @@ func (h *Handler) renderReaderPage(ctx context.Context, p *state.Page) ([]byte, 
 	if cachedFrames, exists := h.App.FrameCache.GetAllFrames(chapterID, bookPageIndex); exists {
 		frames = cachedFrames
 	} else {
-		// Single-fragment fetch: fetch only the current Kavita page fragment
 		rawHTML, err := h.App.KavitaRepository.GetBookPage(ctx, chapterID, bookPageIndex)
 		if err != nil {
 			return nil, fmt.Errorf("fetch book content (chapter %d, page %d): %w", chapterID, bookPageIndex, err)
@@ -127,7 +125,6 @@ func (h *Handler) renderReaderPage(ctx context.Context, p *state.Page) ([]byte, 
 			return nil, fmt.Errorf("render book frames: %w", err)
 		}
 
-		// Store frames keyed by (chapterID, bookPageIndex)
 		h.App.FrameCache.Set(chapterID, bookPageIndex, frames)
 	}
 

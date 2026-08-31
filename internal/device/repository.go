@@ -17,7 +17,6 @@ func NewDeviceRepository(db *sql.DB) *Repository {
 	return &Repository{db: db}
 }
 
-// GetDeviceAuthHash retrieves the stored API key hash for a given device.
 func (r *Repository) GetDeviceAuthHash(deviceID string) (string, error) {
 	var hash string
 	err := r.db.QueryRow("SELECT api_key_hash FROM devices WHERE device_id = ?", deviceID).Scan(&hash)
@@ -30,7 +29,6 @@ func (r *Repository) GetDeviceAuthHash(deviceID string) (string, error) {
 	return hash, nil
 }
 
-// GetDeviceState retrieves the current navigation back-stack for a device.
 func (r *Repository) GetDeviceState(deviceID string) (*state.DeviceState, error) {
 	var navStackJSON []byte
 	var lastFrameHash sql.NullString
@@ -40,6 +38,7 @@ func (r *Repository) GetDeviceState(deviceID string) (*state.DeviceState, error)
 	err := r.db.QueryRow(query, deviceID).Scan(&navStackJSON, &lastFrameHash, &updatedAt)
 
 	if err != nil {
+		// TODO: Testing required for this case, as it should only happen if the device is not registered yet.
 		if errors.Is(err, sql.ErrNoRows) {
 			// Lazy initialization — matches state.NewDeviceState's root page exactly.
 			return state.NewDeviceState(deviceID), nil
@@ -63,7 +62,6 @@ func (r *Repository) GetDeviceState(deviceID string) (*state.DeviceState, error)
 	return ds, nil
 }
 
-// SaveDeviceState upserts the current navigation stack and frame hash.
 func (r *Repository) SaveDeviceState(s *state.DeviceState) error {
 	navStackJSON, err := json.Marshal(s.Stack)
 	if err != nil {

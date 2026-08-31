@@ -8,7 +8,6 @@ import (
 	"strconv"
 )
 
-// Repository interface defines operations for interacting with Kavita.
 type Repository interface {
 	Authenticate(ctx context.Context) error
 	GetLibraries(ctx context.Context) ([]Library, error)
@@ -113,7 +112,7 @@ func (r *repository) GetChapterMetadata(ctx context.Context, chapterID int) (*Ch
 	return &info, nil
 }
 
-// GetBookPage fetches the HTML/text content for EPUB/book readers.
+// fetches the HTML/text content for EPUB/book readers.
 func (r *repository) GetBookPage(ctx context.Context, chapterID int, page int) (string, error) {
 	path := fmt.Sprintf("/api/book/%d/book-page?page=%d", chapterID, page)
 	text, err := r.client.getText(ctx, path)
@@ -123,7 +122,7 @@ func (r *repository) GetBookPage(ctx context.Context, chapterID int, page int) (
 	return text, nil
 }
 
-// GetChapterPageImage downloads the raw page bitmap/image for image-based manga/comic readers.
+// downloads the raw page bitmap/image for image-based manga/comic readers.
 func (r *repository) GetChapterPageImage(ctx context.Context, chapterID int, page int) ([]byte, error) {
 	apiKey := r.client.GetUserAPIKey()
 	path := fmt.Sprintf(

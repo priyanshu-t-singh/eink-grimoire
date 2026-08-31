@@ -38,9 +38,8 @@ func DeviceAuth(repo *device.Repository) func(http.Handler) http.Handler {
 				http.Error(w, "Invalid Authorization header format", http.StatusUnauthorized)
 				return
 			}
-			apiKey := parts[1]
 
-			// Use the repo directly instead of app.DeviceRepo
+			apiKey := parts[1]
 			expectedHash, err := repo.GetDeviceAuthHash(deviceID)
 			if err != nil {
 				log.Printf("Auth failed: device %s not found or DB error: %v", deviceID, err)
@@ -58,7 +57,7 @@ func DeviceAuth(repo *device.Repository) func(http.Handler) http.Handler {
 			}
 
 			ctx := SetDeviceID(r.Context(), deviceID)
-			UpdateContext(r, ctx) // Update the context for logging middleware
+			UpdateLoggingContext(r, ctx)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

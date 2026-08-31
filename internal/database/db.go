@@ -39,7 +39,7 @@ func Open(dbPath string) (*sql.DB, error) {
 		return nil, fmt.Errorf("database unreachable: %w", err)
 	}
 
-	// Configure Goose
+	// Initialize db migrations
 	goose.SetBaseFS(migrations.MigrationsFS)
 	if err := goose.SetDialect("sqlite"); err != nil {
 		return nil, fmt.Errorf("failed to set goose dialect: %w", err)

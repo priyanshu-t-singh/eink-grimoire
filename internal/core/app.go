@@ -11,6 +11,8 @@ import (
 	"log/slog"
 )
 
+// TODO: set up a proper dependency injection framework for this app,
+// so that we can easily swap out implementations of the repositories, renderers, etc.
 type App struct {
 	// Config
 	Config   *Config

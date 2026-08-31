@@ -78,7 +78,10 @@ func newLocalAllocator(parent context.Context, execPath string) (context.Context
 		chromedp.NoSandbox,
 		chromedp.Headless,
 		chromedp.WindowSize(constants.DisplayWidth, constants.DisplayHeight),
+
+		// FIXME:
 		// Bypass CORS & Private Network Access restrictions
+		// So the image can load, but needs to remove later for security reasons.
 		chromedp.Flag("disable-web-security", true),
 		chromedp.Flag("allow-running-insecure-content", true),
 		chromedp.Flag("disable-features", "IsolateOrigins,site-per-process,BlockInsecurePrivateNetworkRequests"),
@@ -91,7 +94,7 @@ func newLocalAllocator(parent context.Context, execPath string) (context.Context
 	return chromedp.NewExecAllocator(parent, opts...)
 }
 
-// RenderListPage renders an HTML list view directly into a 2bpp 30000-byte buffer.
+// renders an HTML list view directly into a 2bpp 30000-byte buffer.
 func (r *Renderer) RenderListPage(ctx context.Context, htmlContent string) ([]byte, error) {
 	taskCtx, cancel := chromedp.NewContext(r.allocCtx)
 	defer cancel()
@@ -124,7 +127,7 @@ Promise.all(
 )
 `
 
-// RenderBookFrames renders a full HTML book chapter and splits it into discrete 400x300 frames.
+// renders a full HTML book chapter and splits it into discrete widthxheight frames.
 func (r *Renderer) RenderBookFrames(ctx context.Context, htmlContent string, lineGap int) ([][]byte, error) {
 	taskCtx, cancel := chromedp.NewContext(r.allocCtx)
 	defer cancel()
@@ -134,8 +137,8 @@ func (r *Renderer) RenderBookFrames(ctx context.Context, htmlContent string, lin
 	var fullHeight int
 	var computedLineHeight float64
 
-	// 1. Initial navigation and measurement
 	err := chromedp.Run(taskCtx,
+		// TODO: Replace constants.DisplayHeight and constants.DisplayWidth with configurable values
 		chromedp.EmulateViewport(int64(constants.DisplayWidth), int64(constants.DisplayHeight)),
 		chromedp.Navigate(dataURL),
 		chromedp.Evaluate(`document.fonts.ready.then(() => true)`, nil),
@@ -151,7 +154,7 @@ func (r *Renderer) RenderBookFrames(ctx context.Context, htmlContent string, lin
 		fullHeight = constants.DisplayHeight
 	}
 
-	// 2. Set viewport to full height
+	// Set viewport to full height
 	err = chromedp.Run(taskCtx,
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			return emulation.SetDeviceMetricsOverride(
@@ -222,7 +225,7 @@ func (r *Renderer) RenderBookFrames(ctx context.Context, htmlContent string, lin
 	return frames, nil
 }
 
-// ProcessMangaImage decodes raw image bytes, fits them into 400x300, dithers, and packs to 2bpp.
+// decodes raw image bytes, fits them into widthxheight, dithers, and packs to 2bpp.
 func ProcessMangaImage(imgBytes []byte) ([]byte, error) {
 	src, _, err := image.Decode(bytes.NewReader(imgBytes))
 	if err != nil {
@@ -251,7 +254,7 @@ func ProcessMangaImage(imgBytes []byte) ([]byte, error) {
 	return DitherAndPack(canvas), nil
 }
 
-// ProcessPNGTo2bpp decodes a PNG and applies Floyd-Steinberg dithering into 2bpp.
+// decodes a PNG and applies Floyd-Steinberg dithering into 2bpp.
 func ProcessPNGTo2bpp(pngBuf []byte) ([]byte, error) {
 	img, err := png.Decode(bytes.NewReader(pngBuf))
 	if err != nil {
@@ -260,7 +263,7 @@ func ProcessPNGTo2bpp(pngBuf []byte) ([]byte, error) {
 	return DitherAndPack(img), nil
 }
 
-// DitherAndPack applies Floyd-Steinberg dithering with WavesharePalette and packs to 2bpp MSB-first.
+// applies Floyd-Steinberg dithering with WavesharePalette and packs to 2bpp MSB-first.
 func DitherAndPack(src image.Image) []byte {
 	bounds := image.Rect(0, 0, constants.DisplayWidth, constants.DisplayHeight)
 	paletted := image.NewPaletted(bounds, WavesharePalette)
@@ -282,7 +285,7 @@ func DitherAndPack(src image.Image) []byte {
 	return out
 }
 
-// RenderFallbackErrorBitmap produces an emergency 30,000-byte bitmap using stdlib basicfont.
+// produces an emergency 30,000-byte bitmap using stdlib basicfont.
 func RenderFallbackErrorBitmap(msg string) []byte {
 	img := image.NewRGBA(image.Rect(0, 0, constants.DisplayWidth, constants.DisplayHeight))
 	draw.Draw(img, img.Bounds(), &image.Uniform{C: color.White}, image.Point{}, draw.Src)

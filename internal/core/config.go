@@ -58,7 +58,7 @@ func NewConfig(logger *slog.Logger) *Config {
 			APIKey:     util.GetKavitaAPIKey(),
 		},
 
-		// Display Configuration (4.2" e-paper = 400x300)
+		// TODO: Different devices may have different display resolutions, so make this configurable in the future.
 		Display: displayConfig{
 			Width:  constants.DisplayWidth,
 			Height: constants.DisplayHeight,

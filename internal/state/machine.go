@@ -9,13 +9,11 @@ import (
 	"le-grimoire/internal/kavita"
 )
 
-// Machine drives state transitions backed by the Kavita data repository.
 type Machine struct {
 	kavita kavita.Repository
 	logger *slog.Logger
 }
 
-// NewMachine creates a state machine instance.
 func NewMachine(kavita kavita.Repository, logger *slog.Logger) *Machine {
 	return &Machine{
 		kavita: kavita,
@@ -23,7 +21,6 @@ func NewMachine(kavita kavita.Repository, logger *slog.Logger) *Machine {
 	}
 }
 
-// ApplyButton mutates ds.Stack in place and returns an event description or an error.
 func (m *Machine) ApplyButton(ctx context.Context, ds *DeviceState, buttonID, pressType string) (string, error) {
 	p := ds.Top()
 
@@ -193,7 +190,7 @@ func (m *Machine) applyReaderButton(ctx context.Context, ds *DeviceState, p *Pag
 	}
 }
 
-// navigateBookPage advances/reverses the Kavita-level book-page fragment within
+// advances/reverses the Kavita-level book-page fragment within
 // the current chapter. Resets sub_page to 0 since scroll position is meaningless
 // across a fragment change.
 func (m *Machine) navigateBookPage(ctx context.Context, ds *DeviceState, p *Page, direction int) (string, error) {
@@ -220,7 +217,7 @@ func (m *Machine) navigateBookPage(ctx context.Context, ds *DeviceState, p *Page
 	return fmt.Sprintf("page index -> %d/%d", target, totalPages-1), nil
 }
 
-// navigateChapter advances or reverses the active chapter inside the Reader view.
+// advances or reverses the active chapter inside the Reader view.
 func (m *Machine) navigateChapter(ctx context.Context, ds *DeviceState, p *Page, direction int) (string, error) {
 	seriesID, _ := strconv.Atoi(p.Params["series_id"])
 	currentChapterID, _ := strconv.Atoi(p.Params["chapter_id"])
@@ -268,7 +265,7 @@ func (m *Machine) navigateChapter(ctx context.Context, ds *DeviceState, p *Page,
 	return fmt.Sprintf("switched chapter to %s (id: %d)", targetChapter.Title, targetChapter.ID), nil
 }
 
-// getItemCount calculates dynamic boundary counts for cursor navigation.
+// calculates dynamic boundary counts for cursor navigation.
 func (m *Machine) getItemCount(ctx context.Context, p *Page) (int, error) {
 	switch p.Type {
 	case PageLibrary:

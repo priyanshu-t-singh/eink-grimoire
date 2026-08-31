@@ -33,7 +33,7 @@ func NewDeviceState(deviceID string) *DeviceState {
 	return &DeviceState{
 		DeviceID: deviceID,
 		Stack: []Page{
-			{Type: PageLibrary, State: map[string]int{"cursor": 0, "scroll": 0}},
+			{Type: PageLibrary, State: defaultPageState()},
 		},
 		UpdatedAt: time.Now(),
 	}
@@ -41,7 +41,7 @@ func NewDeviceState(deviceID string) *DeviceState {
 
 func (s *DeviceState) Top() *Page {
 	if len(s.Stack) == 0 {
-		s.Stack = append(s.Stack, Page{Type: PageLibrary, State: map[string]int{"cursor": 0, "scroll": 0}})
+		s.Stack = append(s.Stack, Page{Type: PageLibrary, State: defaultPageState()})
 	}
 	return &s.Stack[len(s.Stack)-1]
 }
@@ -51,11 +51,15 @@ func (s *DeviceState) Pop() {
 		s.Stack = s.Stack[:len(s.Stack)-1]
 	} else {
 		// Empty stack defaults to Library root
-		s.Stack = []Page{{Type: PageLibrary, State: map[string]int{"cursor": 0, "scroll": 0}}}
+		s.Stack = []Page{{Type: PageLibrary, State: defaultPageState()}}
 	}
 }
 
 func (s *DeviceState) Push(page Page) {
 	s.Stack = append(s.Stack, page)
 	s.UpdatedAt = time.Now().UTC()
+}
+
+func defaultPageState() map[string]int {
+	return map[string]int{"cursor": 0, "scroll": 0}
 }

@@ -8,7 +8,6 @@ type AuthResponse struct {
 	KavitaVersion string `json:"kavitaVersion"`
 }
 
-// Library represents a Kavita library.
 type Library struct {
 	ID    int    `json:"id"`
 	Name  string `json:"name"`
@@ -33,14 +32,12 @@ type SeriesFilterRequest struct {
 	SortOptions SortOptions       `json:"sortOptions"`
 }
 
-// FilterStatement represents a condition in SeriesFilterRequest.
 type FilterStatement struct {
 	Field      int    `json:"field"`      // 19 = LibraryId
 	Value      string `json:"value"`      // library ID as string
 	Comparison int    `json:"comparison"` // 0 = Equal
 }
 
-// SortOptions represents ordering options in SeriesFilterRequest.
 type SortOptions struct {
 	IsAscending bool `json:"isAscending"`
 	SortField   int  `json:"sortField"` // 1 = Name/Title
@@ -55,7 +52,6 @@ type Volume struct {
 	Chapters []Chapter `json:"chapters"`
 }
 
-// Chapter represents a single chapter or loose issue.
 type Chapter struct {
 	ID          int    `json:"id"`
 	VolumeID    int    `json:"volumeId"`

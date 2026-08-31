@@ -23,8 +23,7 @@ type ContextHolder struct {
 	Ctx context.Context
 }
 
-// helper function to pass context from downstream handlers to the logging middleware
-func UpdateContext(r *http.Request, ctx context.Context) {
+func UpdateLoggingContext(r *http.Request, ctx context.Context) {
 	if holder, ok := r.Context().Value(logContextKey).(*ContextHolder); ok {
 		holder.Ctx = ctx
 	}

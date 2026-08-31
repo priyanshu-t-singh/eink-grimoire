@@ -13,8 +13,9 @@ type buttonRequest struct {
 	Type     string `json:"type"`      // Expected values: "short_press", "long_press"
 }
 
+// TODO: Check if this struct still required after testing.
 type pushButtonResponse struct {
-	Action string            `json:"action"` // human-readable description, tracer-only
+	Action string            `json:"action"`
 	State  state.DeviceState `json:"state"`
 }
 
@@ -43,7 +44,7 @@ func (h *Handler) PushButtonHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Invalidate cache if force refresh (Long-press E) was triggered on Reader page
+	// Invalidates cache if force refresh (Long-press E) was triggered on Reader page
 	if (req.ButtonID == "E") && (req.Type == "long" || req.Type == "long_press") {
 		top := ds.Top()
 		if top.Type == state.PageReader {

@@ -40,7 +40,6 @@ func (t *AuthTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		return t.base.RoundTrip(req)
 	}
 
-	// Clone request and attach current token
 	reqCopy := cloneRequest(req)
 	token := t.GetUserAPIKey()
 	if token != "" {
@@ -119,7 +118,6 @@ func (t *AuthTransport) GetUserAPIKey() string {
 	return t.apiKey
 }
 
-// cloneRequest creates a shallow copy of the request with cloned headers and rewindable body.
 func cloneRequest(req *http.Request) *http.Request {
 	r := req.Clone(req.Context())
 	r.Header = make(http.Header, len(req.Header))
