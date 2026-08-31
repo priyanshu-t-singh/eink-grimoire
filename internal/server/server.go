@@ -18,8 +18,11 @@ func startApp() {
 		log.Println("No .env file found, using system environment variables")
 	}
 
+	// Get the flags
+	flags := core.GetLeGrimoireFlags()
+
 	// Create the app instance
-	app := core.NewApp()
+	app := core.NewApp(&core.ConfigOptions{Flags: flags})
 	app.InitLogging()
 	app.InitDatabase()
 	app.InitRepositories()

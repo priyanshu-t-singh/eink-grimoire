@@ -32,11 +32,11 @@ type App struct {
 	ShutdownLogger func()
 }
 
-func NewApp() *App {
+func NewApp(configOpts *ConfigOptions) *App {
 	logger := util.NewLogger()
 	logger.Info("Initializing application...")
 
-	cfg, err := NewConfig(&ConfigOptions{}, logger)
+	cfg, err := NewConfig(configOpts, logger)
 	if err != nil {
 		logger.Error("failed to load config", "error", err)
 		return nil
