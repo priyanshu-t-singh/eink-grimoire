@@ -10,7 +10,7 @@ const (
 )
 
 // NOTE: Injected at build time using ldflags, default is `dev` for local development
-var Version = "dev"
+var Version = "v1.1.0-dev"
 
 const (
 	KavitaAPIBaseURL    = "http://kavita:5000"
